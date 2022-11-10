@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/application_background"
+    android:padding="@dimen/common_padding"
+    tools:context=".MainActivity">
+
+
+    <ImageView
+        android:id="@+id/imgAvatar"
+        android:layout_width="@dimen/postPic"
+        android:layout_height="@dimen/postPic"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/ic_launcher_foreground2" />
+
+
+    <ImageButton
+        android:id="@+id/ibtnMenuMoreActions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/common_padding"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/ic_more_vert" />
+
+    <LinearLayout
+        android:id="@+id/linearLayoutTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/common_padding"
+        app:layout_constraintBottom_toBottomOf="@id/imgAvatar"
+        app:layout_constraintEnd_toStartOf="@id/ibtnMenuMoreActions"
+        app:layout_constraintStart_toEndOf="@id/imgAvatar"
+        app:layout_constraintTop_toTopOf="@id/imgAvatar">
+
+        <TextView
+            android:id="@+id/messageAuthor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/message_author"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/messagePublished"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/message_published" />
+
+    </LinearLayout>
+
+
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/barrierTop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:barrierMargin="@dimen/common_margin"
+        app:barrierDirection="bottom"
+        app:constraint_referenced_ids="ibtnMenuMoreActions,imgAvatar,linearLayoutTitle" />
+
+    <TextView
+        android:id="@+id/messageContent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/common_padding"
+        app:layout_constraintTop_toBottomOf="@id/barrierTop"
+        android:text="@string/message_content"
+        android:autoLink="web"
+        android:ellipsize="none"
+        android:lineSpacingMultiplier="1.2" />
+
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/barrierMiddle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:barrierDirection="bottom"
+        app:constraint_referenced_ids="messageContent" />
+
+    <ImageButton
+        android:id="@+id/ibtnLikes"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/common_padding"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/barrierMiddle"
+        app:srcCompat="@drawable/ic_heart_unfilled" />
+
+    <TextView
+        android:id="@+id/txtCountLikes"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/common_padding"
+        android:text="@string/text_count_likes"
+        app:layout_constraintBottom_toBottomOf="@id/ibtnLikes"
+        app:layout_constraintStart_toEndOf="@id/ibtnLikes"
+        app:layout_constraintTop_toTopOf="@id/ibtnLikes" />
+
+    <ImageButton
+        android:id="@+id/ibtnShare"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/common_padding"
+        app:layout_constraintStart_toEndOf="@id/txtCountLikes"
+        app:layout_constraintTop_toBottomOf="@id/barrierMiddle"
+        app:srcCompat="@drawable/ic_share" />
+
+    <TextView
+        android:id="@+id/txtCountShare"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/common_padding"
+        android:text="@string/text_count_shared"
+        app:layout_constraintBottom_toBottomOf="@id/ibtnShare"
+        app:layout_constraintStart_toEndOf="@id/ibtnShare"
+        app:layout_constraintTop_toTopOf="@id/ibtnShare" />
+
+    <ImageView
+        android:id="@+id/imgViews"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/common_padding"
+        app:layout_constraintEnd_toStartOf="@id/txtCountViews"
+        app:layout_constraintTop_toBottomOf="@id/barrierMiddle"
+        app:srcCompat="@drawable/ic_eye_of_view" />
+
+    <TextView
+        android:id="@+id/txtCountViews"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/common_padding"
+        android:text="@string/text_count_views"
+        app:layout_constraintBottom_toBottomOf="@id/imgViews"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/imgViews" />
+
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/barrierPost"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:barrierDirection="bottom"
+        app:constraint_referenced_ids="ibtnLikes,txtCountLikes,ibtnShare,txtCountShare,imgViews,txtCountViews" />
+
+    <!--<View
+        android:id="@+id/viewRedLine"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/line_thickness"
+        android:layout_margin="@dimen/common_margin"
+        android:background="@color/red_1"
+        app:layout_constraintTop_toBottomOf="@id/barrierPost" />
+-->
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+
