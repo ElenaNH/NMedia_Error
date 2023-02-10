@@ -9,6 +9,7 @@ import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.launch
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.snackbar.Snackbar
 import ru.netology.nmedia.R
 import ru.netology.nmedia.adapter.OnInteractionListener
 import ru.netology.nmedia.adapter.PostsAdapter
@@ -47,20 +48,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // создаем привязку к элементам макета по первому обращению к ним
     private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
     val adapter by lazy { PostsAdapter(interactionListener) }
+
+    // Регистрируем контракт, который вернет нам результат запуска новой октивити
+    // а мы уже передадим результат в нашу ViewModel
+    val newPostContract = registerForActivityResult(NewPostContract) { content ->
+        content ?: return@registerForActivityResult
+        viewModel.changeContent(content)
+        viewModel.save()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)  // binding вынесли выше и отдали by lazy, и только при первом вызове реально создастся binding
 
-        // Регистрируем контракт, который вернет нам результат запуска новой октивити
-        // а мы уже передадим результат в нашу ViewModel
-        val newPostContract = registerForActivityResult(NewPostContract) { content ->
-            content ?: return@registerForActivityResult
-            viewModel.changeContent(content)
-            viewModel.save()
-        }
 
         binding.list.adapter =
             adapter   // val adapter = PostsAdapter(interactionListener) вынесли выше и отдали by lazy
@@ -89,19 +92,13 @@ class MainActivity : AppCompatActivity() {
 
             if (post.id == 0L) {
                 // Если нулевой id, значит, в поле edited нашей модели помещен пустой пост
+                // То есть, редактирование закончено или отменено
                 return@observe
             }
             // Если пост непустой, то запустим окно редактирования поста
             // А текст поста новая активити получит из нашего контракта
+            newPostContract.launch()
 
-            // Регистрируем отдельно еще и тут
-            // А как бы так ее получать после того, как она уже зарегистрировалась в onCreate?
-            val newPostContract2 = registerForActivityResult(NewPostContract) { content ->
-                content ?: return@registerForActivityResult
-                viewModel.changeContent(content)
-                viewModel.save()
-            }
-            newPostContract2.launch()
         }
 
     }
@@ -110,8 +107,13 @@ class MainActivity : AppCompatActivity() {
         // Обработчики кликов
 
         // Пока что все обработчики либо в адаптере, либо в другой активити,
-        // либо не получилось их сюда вынести (fab)
+        // тут только один fab
 
+        binding.fab.setOnClickListener {
+            // тут объект ActivityResultLauncher должен запуститься;
+            // почему-то лончер назвали контрактом
+            newPostContract.launch()    // newPostContract.launch(Unit) заменили на функцию расширения (для стильности)
+        }
 
 /*        binding.ibtnSave.setOnClickListener {
             with(binding.editContent) {
