@@ -42,14 +42,23 @@ class NewPostActivity : AppCompatActivity() {
     // Cоздаем контракт - это синглтон
 
     object NewPostContract : ActivityResultContract<String?, String?>() {
-        /*object NewPostContract : ActivityResultContract<Unit, String?>() {*/
+        // Первый тип-параметр - это тип входных данных для передачи в вызываемую активить
+        // Второй - это тип возвращаемых данных
+        // На уроке не было входных данных, а только возвращаемые:  object NewPostContract : ActivityResultContract<Unit, String?>()
+
         // переопределим создание интента в контракте, передав в него контекст и нужную нам активить нового поста
-        /*override fun createIntent(context: Context, input: Unit) =
-            Intent(context, NewPostActivity::class.java)*/
-        override fun createIntent(context: Context, input: String?) =
-            Intent(context, NewPostActivity::class.java)
+        // второй параметр input должен быть того самого типа, что и первый тип-параметр синглтона (или класса, если будет класс)
+        // на уроке мы ничего не передавали в новую активить, поэтому не требовался вызов putExtra: override fun createIntent(context: Context, input: Unit) = Intent(context, NewPostActivity::class.java)
+        override fun createIntent(context: Context, input: String?): Intent {
+            val intent = Intent(context, NewPostActivity::class.java)
+            if (!input.isNullOrBlank()){
+                intent.putExtra(Intent.EXTRA_TEXT,input)    // В данном случае input имеет тип String?, поэтому используем константу EXTRA_TEXT
+            }
+            return intent
+        }
 
         // переопределим получение результата работы запущенной активити
+        // ф-ция возвращает данные такого же типа, что и второй тип-параметр синглтона (или класса), поэтому использовали getStringExtra в данном случае
         override fun parseResult(resultCode: Int, intent: Intent?) =
             intent?.getStringExtra(Intent.EXTRA_TEXT)
 

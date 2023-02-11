@@ -32,11 +32,12 @@ class MainActivity : AppCompatActivity() {
                 putExtra(Intent.EXTRA_TEXT, post.content)
                 type = "text/plain"
             }
-
+            // Следующая строка необязательная - интент на красивый выбор запускаемого приложения
             val shareIntent = Intent.createChooser(intent, getString(R.string.chooser_share_post))
+            // А здесь мы могли запустить наш intent без красоты, либо улучшенный shareIntent
             startActivity(shareIntent)
-
-            viewModel.shareById(post.id)    // раньше был только счетчик
+            // Увеличиваем счетчик шаринга
+            viewModel.shareById(post.id)
         }
 
         override fun onRemove(post: Post) {
@@ -45,6 +46,10 @@ class MainActivity : AppCompatActivity() {
 
         override fun onEdit(post: Post) {
             viewModel.startEditing(post)
+            // Если пост непустой, то запустим окно редактирования поста
+            // А текст поста новая активити получит из нашего контракта
+            // Но для этого мы должны передать его в лончер в качестве аргумента
+            newPostContract.launch(post.content)
         }
     }
 
@@ -68,16 +73,8 @@ class MainActivity : AppCompatActivity() {
         binding.list.adapter =
             adapter   // val adapter = PostsAdapter(interactionListener) вынесли выше и отдали by lazy
 
-        subscribe()
-        setListeners()  // все лиснеры, кроме FAB - т.к. не удалось сделать из  контракта переменную уровня MainActivity
-/*
-        // лиснер для fab
-        binding.fab.setOnClickListener {
-            // тут какой-то ActivityResultLauncher должен запуститься; почему-то лончер назвали контрактом
-            newPostContract.launch()    // newPostContract.launch(Unit) заменили на фаункцию расширения (для стильности)
-
-        }
-*/
+        subscribe()     // все подписки, которые могут нам потребоваться в данной активити
+        setListeners()  // все лиснеры всех элементов данной активити
 
     }
 
@@ -86,10 +83,14 @@ class MainActivity : AppCompatActivity() {
 
         // Подписка на список сообщений
         viewModel.data.observe(this) { posts ->
-            adapter.submitList(posts)
+            adapter.submitList(posts)   // обновление списка отображаемых постов в RecyclerView
+            // далее - прокрутка до верхнего элемента списка (с индексом 0)
+            // ПОЧЕМУ-ТО ПРОКРУЧИВАЕТ К ЭЛЕМЕНТУ С ИНДЕКСОМ 1, а не к верхнему
+            binding.list.smoothScrollToPosition(0)
         }
 
-        // Подписка на нижнее поле добавления/изменения
+/*        // Подписка на нижнее поле добавления/изменения
+        // После переноса редактирования в другую активить потеряла смысл
         viewModel.edited.observe(this) { post ->
 
             if (post.id == 0L) {
@@ -97,14 +98,10 @@ class MainActivity : AppCompatActivity() {
                 // То есть, редактирование закончено или отменено
                 return@observe
             }
-            // Если пост непустой, то запустим окно редактирования поста
-            // А текст поста новая активити получит из нашего контракта
+            // Если пост непустой, то ...
 
-            // Но только неясно, КАК ПЕРЕДАТЬ ТЕКСТ ПОСТА В ИНТЕНТ НАШЕГО КОНТРАКТА
 
-            newPostContract.launch(post.content)
-
-        }
+        }*/
 
     }
 
@@ -116,9 +113,10 @@ class MainActivity : AppCompatActivity() {
 
         binding.fab.setOnClickListener {
             // тут объект ActivityResultLauncher должен запуститься;
-            // почему-то лончер назвали контрактом
+            // почему-то этот лончер назвали контрактом
+            // в классной работе нам не требовалось передавать аргумент, поэтому мы запускали активить с объектом Unit
             //newPostContract.launch()    // newPostContract.launch(Unit) заменили на функцию расширения (для стильности)
-            newPostContract.launch(null)
+            newPostContract.launch(null)  // а тут запускаем с null, т.к. пост новый, у него еще нет контента
         }
 
 /*        binding.ibtnSave.setOnClickListener {
