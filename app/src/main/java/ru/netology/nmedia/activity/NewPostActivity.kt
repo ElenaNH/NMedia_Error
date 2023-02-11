@@ -17,6 +17,9 @@ class NewPostActivity : AppCompatActivity() {
         intent?.let {
             binding.editContent.setText(it.getStringExtra(Intent.EXTRA_TEXT))
         }
+
+
+
         binding.btnOk.setOnClickListener {
             val intent = Intent()
             if (binding.editContent.text.isNullOrBlank()) {
@@ -38,9 +41,12 @@ class NewPostActivity : AppCompatActivity() {
 
     // Cоздаем контракт - это синглтон
 
-    object NewPostContract : ActivityResultContract<Unit, String?>() {
+    object NewPostContract : ActivityResultContract<String?, String?>() {
+        /*object NewPostContract : ActivityResultContract<Unit, String?>() {*/
         // переопределим создание интента в контракте, передав в него контекст и нужную нам активить нового поста
-        override fun createIntent(context: Context, input: Unit) =
+        /*override fun createIntent(context: Context, input: Unit) =
+            Intent(context, NewPostActivity::class.java)*/
+        override fun createIntent(context: Context, input: String?) =
             Intent(context, NewPostActivity::class.java)
 
         // переопределим получение результата работы запущенной активити

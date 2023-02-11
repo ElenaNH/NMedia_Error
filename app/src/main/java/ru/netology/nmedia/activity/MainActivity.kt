@@ -70,12 +70,14 @@ class MainActivity : AppCompatActivity() {
 
         subscribe()
         setListeners()  // все лиснеры, кроме FAB - т.к. не удалось сделать из  контракта переменную уровня MainActivity
+/*
         // лиснер для fab
         binding.fab.setOnClickListener {
             // тут какой-то ActivityResultLauncher должен запуститься; почему-то лончер назвали контрактом
             newPostContract.launch()    // newPostContract.launch(Unit) заменили на фаункцию расширения (для стильности)
 
         }
+*/
 
     }
 
@@ -97,7 +99,10 @@ class MainActivity : AppCompatActivity() {
             }
             // Если пост непустой, то запустим окно редактирования поста
             // А текст поста новая активити получит из нашего контракта
-            newPostContract.launch()
+
+            // Но только неясно, КАК ПЕРЕДАТЬ ТЕКСТ ПОСТА В ИНТЕНТ НАШЕГО КОНТРАКТА
+
+            newPostContract.launch(post.content)
 
         }
 
@@ -112,7 +117,8 @@ class MainActivity : AppCompatActivity() {
         binding.fab.setOnClickListener {
             // тут объект ActivityResultLauncher должен запуститься;
             // почему-то лончер назвали контрактом
-            newPostContract.launch()    // newPostContract.launch(Unit) заменили на функцию расширения (для стильности)
+            //newPostContract.launch()    // newPostContract.launch(Unit) заменили на функцию расширения (для стильности)
+            newPostContract.launch(null)
         }
 
 /*        binding.ibtnSave.setOnClickListener {
