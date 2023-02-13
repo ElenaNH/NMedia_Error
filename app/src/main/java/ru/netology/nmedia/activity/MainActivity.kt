@@ -1,6 +1,7 @@
 package ru.netology.nmedia.activity
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -48,8 +49,18 @@ class MainActivity : AppCompatActivity() {
             viewModel.startEditing(post)
             // Если пост непустой, то запустим окно редактирования поста
             // А текст поста новая активити получит из нашего контракта
-            // Но для этого мы должны передать его в лончер в качестве аргумента
+            // Но для этого мы должны передать этот текст в лончер в качестве аргумента
             newPostContract.launch(post.content)
+        }
+
+        override fun onVideoLinkClick(post: Post) {
+            // Тут по-другому создается интент
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(post.videoLink))
+
+            // Следующая строка необязательная - интент на красивый выбор запускаемого приложения
+            val shareIntent = Intent.createChooser(intent, getString(R.string.chooser_share_post))
+            // А здесь мы могли запустить наш intent без красоты, либо улучшенный shareIntent
+            startActivity(shareIntent)
         }
     }
 
@@ -83,10 +94,14 @@ class MainActivity : AppCompatActivity() {
 
         // Подписка на список сообщений
         viewModel.data.observe(this) { posts ->
-            adapter.submitList(posts)   // обновление списка отображаемых постов в RecyclerView
-            // далее - прокрутка до верхнего элемента списка (с индексом 0)
-            // ПОЧЕМУ-ТО ПРОКРУЧИВАЕТ К ЭЛЕМЕНТУ С ИНДЕКСОМ 1, а не к верхнему
-            binding.list.smoothScrollToPosition(0)
+            val newPost = (adapter.currentList.size < posts.size) // элементов в списке стало больше
+            // далее обновление списка отображаемых постов в RecyclerView
+            adapter.submitList(posts) {
+                // далее - прокрутка до верхнего элемента списка (с индексом 0)
+                // ее нужно делать только если обновился список в адаптере
+                // иначе он не к верхнему прокрутит, а ко второму
+                if (newPost) binding.list.smoothScrollToPosition(0)
+            }
         }
 
 /*        // Подписка на нижнее поле добавления/изменения
@@ -119,23 +134,7 @@ class MainActivity : AppCompatActivity() {
             newPostContract.launch(null)  // а тут запускаем с null, т.к. пост новый, у него еще нет контента
         }
 
-/*        binding.ibtnSave.setOnClickListener {
-            with(binding.editContent) {
-                if (text.isNullOrBlank()) {
-                    Toast.makeText(
-                        this@MainActivity,
-                        context.getString(R.string.error_empty_content),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    return@setOnClickListener
-                }
-
-                viewModel.changeContent(text.toString())
-                viewModel.save()
-            }
-            clearEditContent()
-        }
-
+/*
         binding.ibtnClear.setOnClickListener {
             viewModel.quitEditing()
             clearEditContent()
