@@ -50,7 +50,11 @@ class MainActivity : AppCompatActivity() {
             // Если пост непустой, то запустим окно редактирования поста
             // А текст поста новая активити получит из нашего контракта
             // Но для этого мы должны передать этот текст в лончер в качестве аргумента
-            newPostContract.launch(post.content)
+            // newPostContract.launch(post.content)
+            var listOf2 = ArrayList<String>()
+            listOf2.add(post.content)
+            listOf2.add(post.videoLink.toString())
+            newPostContract.launch(listOf2)
         }
 
         override fun onVideoLinkClick(post: Post) {
@@ -70,10 +74,13 @@ class MainActivity : AppCompatActivity() {
 
     // Регистрируем контракт, который вернет нам результат запуска новой октивити
     // а мы уже передадим результат в нашу ViewModel
-    val newPostContract = registerForActivityResult(NewPostContract) { content ->
-        content ?: return@registerForActivityResult
-        viewModel.changeContent(content)
-        viewModel.save()
+    val newPostContract = registerForActivityResult(NewPostContract) { contentAndVideoLink ->
+        contentAndVideoLink ?: return@registerForActivityResult
+        //viewModel.changeContent(content)
+        if (contentAndVideoLink?.size ?: 0 == 2) {
+            viewModel.changeContentAndVideoLink(contentAndVideoLink)
+            viewModel.save()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -134,8 +141,7 @@ class MainActivity : AppCompatActivity() {
             newPostContract.launch(null)  // а тут запускаем с null, т.к. пост новый, у него еще нет контента
         }
 
-/*
-        binding.ibtnClear.setOnClickListener {
+/*          binding.ibtnClear.setOnClickListener {
             viewModel.quitEditing()
             clearEditContent()
         }*/

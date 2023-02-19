@@ -18,12 +18,16 @@ class NewPostActivity : AppCompatActivity() {
         setContentView(binding.root)
         binding.editContent.requestFocus()
         intent?.let {
-            binding.editContent.setText(it.getStringExtra(Intent.EXTRA_TEXT))
+            val listOf2 = it.getStringArrayListExtra("LIST_OF_2")
+            if (listOf2?.size ?: 0 == 2) {
+                binding.editContent.setText(listOf2?.get(0).toString())
+                binding.editVideoLink.setText(listOf2?.get(1).toString())
+            }
         }
 
         binding.btnOk.setOnClickListener {
-            val intent = Intent()
-            if (binding.editContent.text.isNullOrBlank()) {
+
+            if ((binding.editContent.text.isNullOrBlank()) and (binding.editVideoLink.text.isNullOrBlank())) {
 
                 // Предупреждение о непустом содержимом
                 val warnToast = Toast.makeText(
@@ -36,8 +40,14 @@ class NewPostActivity : AppCompatActivity() {
                 return@setOnClickListener
 
             } else {
-                val postContent = binding.editContent.text.toString()
-                intent.putExtra(Intent.EXTRA_TEXT, postContent)
+                val intent = Intent()
+
+                val postContent = binding.editContent.text.toString().trim()
+                val videoLinkContent = binding.editVideoLink.text.toString().trim()
+                var listOf2 = ArrayList<String>()
+                listOf2.add(postContent)
+                listOf2.add(videoLinkContent)
+                intent.putExtra("LIST_OF_2", listOf2)
                 setResult(
                     Activity.RESULT_OK,
                     intent
@@ -49,7 +59,7 @@ class NewPostActivity : AppCompatActivity() {
 
     // Cоздаем контракт - это синглтон, т.к. достаточно единственного экземпляра
 
-    object NewPostContract : ActivityResultContract<String?, String?>() {
+    object NewPostContract : ActivityResultContract<ArrayList<String>?, ArrayList<String>?>() {
         // Первый тип-параметр - это тип входных данных для передачи в вызываемую активить
         // Второй - это тип возвращаемых данных
         // На уроке не было входных данных, а только возвращаемые:  object NewPostContract : ActivityResultContract<Unit, String?>()
@@ -57,11 +67,11 @@ class NewPostActivity : AppCompatActivity() {
         // переопределим создание интента в контракте, передав в него контекст и нужную нам активить нового поста
         // второй параметр input должен быть того самого типа, что и первый тип-параметр синглтона (или класса, если будет класс)
         // на уроке мы ничего не передавали в новую активить, поэтому не требовался вызов putExtra: override fun createIntent(context: Context, input: Unit) = Intent(context, NewPostActivity::class.java)
-        override fun createIntent(context: Context, input: String?): Intent {
+        override fun createIntent(context: Context, input: ArrayList<String>?): Intent {
             val intent = Intent(context, NewPostActivity::class.java)
-            if (!input.isNullOrBlank()) {
+            if (input?.size ?: 0 == 2) {
                 intent.putExtra(
-                    Intent.EXTRA_TEXT,
+                    "LIST_OF_2",
                     input
                 )    // В данном случае input имеет тип String?, поэтому используем константу EXTRA_TEXT
             }
@@ -71,8 +81,7 @@ class NewPostActivity : AppCompatActivity() {
         // переопределим получение результата работы запущенной активити
         // ф-ция возвращает данные такого же типа, что и второй тип-параметр синглтона (или класса), поэтому использовали getStringExtra в данном случае
         override fun parseResult(resultCode: Int, intent: Intent?) =
-            intent?.getStringExtra(Intent.EXTRA_TEXT)
-
+            intent?.getStringArrayListExtra("LIST_OF_2")
     }
 
 }

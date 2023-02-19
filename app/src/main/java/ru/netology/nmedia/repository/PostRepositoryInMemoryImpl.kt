@@ -100,7 +100,7 @@ class PostRepositoryInMemoryImpl : PostRepository {
             ) + posts
         } else {
             posts = posts.map {
-                if (it.id != post.id) it else it.copy(content = post.content)
+                if (it.id != post.id) it else it.copy(content = post.content, videoLink = post.videoLink)
             }
         }
         data.value = posts

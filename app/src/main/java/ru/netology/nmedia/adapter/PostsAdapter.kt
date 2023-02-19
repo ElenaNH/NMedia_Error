@@ -46,7 +46,8 @@ class PostViewHolder(
             messageAuthor.text = post.author
             messagePublished.text = post.published
             messageContent.text = post.content
-            if (post.videoLink != null) videoLinkPic.setImageResource(R.mipmap.ic_banner_foreground)
+            if ((post.videoLink ?: "").trim() == "") videoLinkPic.setImageDrawable(null)
+            else videoLinkPic.setImageResource(R.mipmap.ic_banner_foreground)
             // Для MaterialButton (но не для Button)
             ibtnLikes.isChecked = post.likedByMe
             ibtnLikes.text = post.countLikes.statisticsToString() // Число лайков прямо на кнопке
