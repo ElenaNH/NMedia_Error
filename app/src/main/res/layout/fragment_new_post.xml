@@ -4,34 +4,25 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".activity.NewPostActivity">
+    tools:context=".activity.NewPostFragment">
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
-
+        android:layout_marginBottom="@dimen/postPic">
+        <!-- Как сделать нижнюю маржину равной по высоте bottomAppBar? -->
 
         <EditText
             android:id="@+id/editContent"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:background="@android:color/transparent"
             android:gravity="start|top"
             android:hint="@string/post_text"
-            android:inputType="textMultiLine" />
-
-        <EditText
-            android:id="@+id/editVideoLink"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@android:color/transparent"
-            android:gravity="start|bottom"
-            android:hint="@string/video_link_text"
             android:inputType="textMultiLine"
-            android:padding="@dimen/common_padding" />
+            tools:text="@string/app_name" />
 
-    </LinearLayout>
+    </ScrollView>
 
     <com.google.android.material.bottomappbar.BottomAppBar
         android:id="@+id/bottomAppBar"

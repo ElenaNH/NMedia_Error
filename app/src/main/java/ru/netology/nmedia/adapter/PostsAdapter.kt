@@ -16,6 +16,7 @@ interface OnInteractionListener {
     fun onEdit(post: Post) {}
     fun onRemove(post: Post) {}
     fun onVideoLinkClick(post: Post) {}
+    fun onViewSingle(post: Post) {}
 }
 
 
@@ -50,9 +51,9 @@ class PostViewHolder(
             else videoLinkPic.setImageResource(R.mipmap.ic_banner_foreground)
             // Для MaterialButton (но не для Button)
             ibtnLikes.isChecked = post.likedByMe
-            ibtnLikes.text = post.countLikes.statisticsToString() // Число лайков прямо на кнопке
-            ibtnShare.text = post.countShare.statisticsToString()
-            btnViews.text = post.countViews.statisticsToString()
+            ibtnLikes.text = post.countLikes.toLong().statisticsToString() // Число лайков прямо на кнопке
+            ibtnShare.text = post.countShare.toLong().statisticsToString()
+            btnViews.text = post.countViews.toLong().statisticsToString()
 
 
             // Обработчики кликов
@@ -66,6 +67,10 @@ class PostViewHolder(
 
             videoLinkPic.setOnClickListener() {
                 onInteractionListener.onVideoLinkClick(post)
+            }
+
+            messageContent.setOnClickListener(){
+                onInteractionListener.onViewSingle(post)
             }
 
             ibtnMenuMoreActions.setOnClickListener {
