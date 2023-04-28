@@ -44,6 +44,9 @@ class PostViewHolder(
 ) : RecyclerView.ViewHolder(binding.root) {
     fun bind(post: Post) {
         binding.apply {
+            if (post.id == 8L) {
+                val myPoint = 1
+            }
             messageAuthor.text = post.author
             messagePublished.text = post.published
             messageContent.text = post.content
@@ -51,7 +54,8 @@ class PostViewHolder(
             else videoLinkPic.setImageResource(R.mipmap.ic_banner_foreground)
             // Для MaterialButton (но не для Button)
             ibtnLikes.isChecked = post.likedByMe
-            ibtnLikes.text = post.countLikes.toLong().statisticsToString() // Число лайков прямо на кнопке
+            ibtnLikes.text =
+                post.countLikes.toLong().statisticsToString() // Число лайков прямо на кнопке
             ibtnShare.text = post.countShare.toLong().statisticsToString()
             btnViews.text = post.countViews.toLong().statisticsToString()
 
@@ -69,7 +73,7 @@ class PostViewHolder(
                 onInteractionListener.onVideoLinkClick(post)
             }
 
-            messageContent.setOnClickListener(){
+            messageContent.setOnClickListener() {
                 onInteractionListener.onViewSingle(post)
             }
 
@@ -82,10 +86,12 @@ class PostViewHolder(
                                 onInteractionListener.onRemove(post)
                                 true
                             }
+
                             R.id.edit -> {
                                 onInteractionListener.onEdit(post)
                                 true
                             }
+
                             else -> false
                         }
                     }
@@ -96,4 +102,10 @@ class PostViewHolder(
 }
 
 
-
+/*// Сначала проверим наличие ссылки внутри поста (возьмем первую подходящую)
+            val regex = "(https?://)?([\\w-]{1,32})(\\.[\\w-]{1,32})+[^\\s@]*".toRegex()
+            val match = regex.find(post.content)
+            // Если ссылка есть в тексте, то поместим ее в отдельное поле
+            // Если нет ссылки, то поле ссылки будет пустым
+            if (match?.value == null) videoLinkPic.setImageDrawable(null)
+            else videoLinkPic.setImageResource(R.mipmap.ic_banner_foreground)*/

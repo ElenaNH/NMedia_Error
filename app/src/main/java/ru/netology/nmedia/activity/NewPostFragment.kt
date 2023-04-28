@@ -5,7 +5,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+//import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import ru.netology.nmedia.databinding.FragmentNewPostBinding
 import ru.netology.nmedia.util.AndroidUtils
@@ -53,7 +54,8 @@ class NewPostFragment : Fragment() {
 
 
     //  viewModels используем теперь с аргументом, чтобы сделать общую viewModel для всех фрагментов
-    private val viewModel: PostViewModel by viewModels(ownerProducer = ::requireParentFragment)
+//    private val viewModel: PostViewModel by viewModels(ownerProducer = ::requireParentFragment)
+    private val viewModel: PostViewModel by activityViewModels()
 
     // С этим ужасом надо что-то делать:
     private lateinit var binding: FragmentNewPostBinding // как сделать by lazy ????
@@ -72,7 +74,7 @@ class NewPostFragment : Fragment() {
             false  // false означает, что система сама добавит этот view, когда посчитает нужным
         )
 
-        arguments?.textArg
+         arguments?.textArg
             ?.let(binding.editContent::setText) // Задаем текст поста из передаточного элемента textArg
 
         // Пока не пойму, как объявить binding через by lazy, лучше не выносить отсюда этот лиснер
@@ -97,6 +99,11 @@ class NewPostFragment : Fragment() {
                 // Закрытие текущего фрагмента (переход к нижележащему в стеке)
                 findNavController().navigateUp()
             }
+        }
+        //добавлено в клиент-серверном варианте
+        viewModel.postCreated.observe(viewLifecycleOwner) {
+            viewModel.loadPosts()
+            findNavController().navigateUp()
         }
         return binding.root
     }
