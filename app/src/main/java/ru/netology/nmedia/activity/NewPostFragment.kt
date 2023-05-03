@@ -24,10 +24,16 @@ import ru.netology.nmedia.util.ARG_POST_ID
 
 class NewPostFragment : Fragment() {
 
-    companion object {  // Объект для сокращения кода при передаче аргумента между фрагментами
+    companion object {
         var Bundle.textArg: String? by StringArg
     }
 
+    //  viewModels используем теперь с аргументом, чтобы сделать общую viewModel для всех фрагментов
+//    private val viewModel: PostViewModel by viewModels(ownerProducer = ::requireParentFragment)
+    private val viewModel: PostViewModel by activityViewModels()
+
+    // С этим ужасом надо что-то делать:
+    private lateinit var binding: FragmentNewPostBinding // как сделать by lazy ????
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,15 +58,6 @@ class NewPostFragment : Fragment() {
 
     }
 
-
-    //  viewModels используем теперь с аргументом, чтобы сделать общую viewModel для всех фрагментов
-//    private val viewModel: PostViewModel by viewModels(ownerProducer = ::requireParentFragment)
-    private val viewModel: PostViewModel by activityViewModels()
-
-    // С этим ужасом надо что-то делать:
-    private lateinit var binding: FragmentNewPostBinding // как сделать by lazy ????
-
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -74,13 +71,12 @@ class NewPostFragment : Fragment() {
             false  // false означает, что система сама добавит этот view, когда посчитает нужным
         )
 
-         arguments?.textArg
+        arguments?.textArg
             ?.let(binding.editContent::setText) // Задаем текст поста из передаточного элемента textArg
 
-        // Пока не пойму, как объявить binding через by lazy, лучше не выносить отсюда этот лиснер
         binding.btnOk.setOnClickListener {
-            if (binding.editContent.text.isNullOrBlank()) {
 
+            if (binding.editContent.text.isNullOrBlank()) {
                 // Предупреждение о непустом содержимом
                 val warnToast = Toast.makeText(
                     this.activity,
@@ -96,29 +92,33 @@ class NewPostFragment : Fragment() {
                 viewModel.changeContent(binding.editContent.text.toString())
                 viewModel.save()
                 AndroidUtils.hideKeyboard(requireView())
-                // Закрытие текущего фрагмента (переход к нижележащему в стеке)
-                findNavController().navigateUp()
+                // findNavController().navigateUp()  // Тут нельзя выходить из фрагмента, т.к. еще не загружены посты
+                // Теперь запись и загрузка постов разделены (ранее не требовалась отдельная загрузка с сервера)
+                viewModel.postCreated.observe(viewLifecycleOwner) { // Загружаем однократно
+                    viewModel.loadPosts()
+                    // Закрытие текущего фрагмента (переход к нижележащему в стеке)
+                    findNavController().navigateUp()
+                }
+                // Чтобы нельзя было вкинуть пост много раз, блокируем кнопку, пока пост не запишется
+                viewModel.postCreateLoading.observe(viewLifecycleOwner) {
+                    binding.btnOk.isEnabled = !it
+                }
+
             }
-        }
-        //добавлено в клиент-серверном варианте
-        viewModel.postCreated.observe(viewLifecycleOwner) {
-            viewModel.loadPosts()
-            findNavController().navigateUp()
+
         }
         return binding.root
     }
 
-
+    // Попробуем вынести создание binding
     private fun makeBinding(
-        inflater: LayoutInflater,
         container: ViewGroup?
     ): FragmentNewPostBinding {
         return FragmentNewPostBinding.inflate(
-            inflater,
+            layoutInflater,
             container,
             false  // false означает, что система сама добавит этот view, когда посчитает нужным
         )
     }
 
 }
-

@@ -55,7 +55,7 @@ class PostViewHolder(
             // Для MaterialButton (но не для Button)
             ibtnLikes.isChecked = post.likedByMe
             ibtnLikes.text =
-                post.countLikes.toLong().statisticsToString() // Число лайков прямо на кнопке
+                post.likes.toLong().statisticsToString() // Число лайков прямо на кнопке
             ibtnShare.text = post.countShare.toLong().statisticsToString()
             btnViews.text = post.countViews.toLong().statisticsToString()
 

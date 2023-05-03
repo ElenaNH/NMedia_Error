@@ -24,8 +24,6 @@ import ru.netology.nmedia.adapter.OnInteractionListener
 import ru.netology.nmedia.dto.Post
 
 
-
-
 class FeedFragment : Fragment() {
     //  viewModels используем теперь с аргументом, чтобы сделать общую viewModel для всех фрагментов
 //    val viewModel: PostViewModel by viewModels(ownerProducer = ::requireParentFragment)
@@ -88,16 +86,6 @@ class FeedFragment : Fragment() {
             binding.progress.isVisible = state.loading
             binding.errorGroup.isVisible = state.error
             binding.emptyText.isVisible = state.empty
-
-//            binding.fab.isEnabled = state.newPostWaiting
-
-// далее - прокрутка до верхнего элемента списка (с индексом 0)
-            // ее нужно делать только если обновился список в адаптере
-            // иначе он не к верхнему прокрутит, а ко второму
-            if (state.newPostWaiting) {
-                binding.list.smoothScrollToPosition(0)
-            }
-            
         }
 
     }

@@ -37,7 +37,7 @@ data class PostEntity(
                 dto.content,
                 dto.published,
                 dto.likedByMe,
-                dto.countLikes
+                dto.likes
             )
 
     }
