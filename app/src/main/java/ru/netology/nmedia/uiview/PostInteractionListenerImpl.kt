@@ -13,6 +13,7 @@ import androidx.navigation.fragment.findNavController
 import ru.netology.nmedia.activity.FeedFragment
 import ru.netology.nmedia.activity.PostFragment
 import ru.netology.nmedia.adapter.OnInteractionListener
+import ru.netology.nmedia.enumeration.AttachmentType
 import ru.netology.nmedia.viewmodel.PostViewModel
 
 class PostInteractionListenerImpl(viewModelInput: PostViewModel, fragmentInput: Fragment) :
@@ -72,14 +73,19 @@ class PostInteractionListenerImpl(viewModelInput: PostViewModel, fragmentInput: 
     }
 
     override fun onVideoLinkClick(post: Post) {
-        // Тут по-другому создается интент
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(post.videoLink))
+        if (((post.videoLink ?: "") != "") and (post.attachment == null)
+        ) {
+            // Когда есть аттач или нет ссылки, то не переходим по ссылке
 
-        // Следующая строка необязательная - интент на красивый выбор запускаемого приложения
-        val shareIntent =
-            Intent.createChooser(intent, fragmentParent.getString(R.string.chooser_share_post))
-        // А здесь мы могли запустить наш intent без красоты, либо улучшенный shareIntent
-        fragmentParent.startActivity(shareIntent)
+            // Тут по-другому создается интент
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(post.videoLink))
+
+            // Следующая строка необязательная - интент на красивый выбор запускаемого приложения
+            val shareIntent =
+                Intent.createChooser(intent, fragmentParent.getString(R.string.chooser_share_post))
+            // А здесь мы могли запустить наш intent без красоты, либо улучшенный shareIntent
+            fragmentParent.startActivity(shareIntent)
+        }
     }
 
     override fun onViewSingle(post: Post) {

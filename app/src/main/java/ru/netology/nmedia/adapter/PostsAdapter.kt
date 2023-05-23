@@ -9,6 +9,10 @@ import ru.netology.nmedia.R
 import ru.netology.nmedia.databinding.CardPostBinding
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.dto.statisticsToString   // при этом dto.Post импортируется через PostViewModel и связанный с ней Repository
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+//import com.squareup.picasso.Picasso
+import ru.netology.nmedia.enumeration.AttachmentType
 
 interface OnInteractionListener {
     fun onLike(post: Post) {}
@@ -43,6 +47,7 @@ class PostViewHolder(
     private val onInteractionListener: OnInteractionListener
 ) : RecyclerView.ViewHolder(binding.root) {
     fun bind(post: Post) {
+        val BASE_URL = "http://10.0.2.2:9999"
         binding.apply {
             if (post.id == 8L) {
                 val myPoint = 1
@@ -50,8 +55,22 @@ class PostViewHolder(
             messageAuthor.text = post.author
             messagePublished.text = post.published
             messageContent.text = post.content
-            if ((post.videoLink ?: "").trim() == "") videoLinkPic.setImageDrawable(null)
-            else videoLinkPic.setImageResource(R.mipmap.ic_banner_foreground)
+            // Наличие прикрепленной картинки первично по отношению к наличию ссылки => отображаем аттач, если есть
+            if ((post.attachment != null) and (post.attachment?.type == AttachmentType.IMAGE)) {
+                // Сначала сбросим старое изображение
+                videoLinkPic.setImageDrawable(null)
+                // Теперь загрузим новое изображение
+                val imgUrl =
+                    "${BASE_URL}/images/${post.attachment?.url ?: ""}" // Если нет аттача, то мы сюда не попадем, но все же обработаем null
+                Glide.with(binding.videoLinkPic)
+                    .load(imgUrl)
+//                    .placeholder(R.drawable.ic_loading_100dp)
+                    .error(R.drawable.ic_error_100dp)
+                    .timeout(10_000)
+                    .into(binding.videoLinkPic)
+            } else
+                if ((post.videoLink ?: "").trim() == "") videoLinkPic.setImageDrawable(null)
+                else videoLinkPic.setImageResource(R.mipmap.ic_banner_foreground)
             // Для MaterialButton (но не для Button)
             ibtnLikes.isChecked = post.likedByMe
             ibtnLikes.text =
@@ -97,15 +116,25 @@ class PostViewHolder(
                     }
                 }.show()
             }
+
+            // И после всех привязок начинаем, наконец, грузить картинку
+            val url = "${BASE_URL}/avatars/${post.avatarFileName()}"
+            Glide.with(binding.imgAvatar)
+                .load(url)
+                .circleCrop()
+                .placeholder(R.drawable.ic_loading_100dp)
+                .error(R.drawable.ic_error_100dp)
+                .timeout(10_000)
+                .into(binding.imgAvatar)
+
+//            Picasso.get()
+//                .load(url)
+//                .error(R.drawable.ic_error_100dp)
+//                .into(binding.image);
+
         }
     }
 }
 
 
-/*// Сначала проверим наличие ссылки внутри поста (возьмем первую подходящую)
-            val regex = "(https?://)?([\\w-]{1,32})(\\.[\\w-]{1,32})+[^\\s@]*".toRegex()
-            val match = regex.find(post.content)
-            // Если ссылка есть в тексте, то поместим ее в отдельное поле
-            // Если нет ссылки, то поле ссылки будет пустым
-            if (match?.value == null) videoLinkPic.setImageDrawable(null)
-            else videoLinkPic.setImageResource(R.mipmap.ic_banner_foreground)*/
+

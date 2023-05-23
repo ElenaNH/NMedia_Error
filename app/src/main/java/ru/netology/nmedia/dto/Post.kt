@@ -1,5 +1,7 @@
 package ru.netology.nmedia.dto
 
+import ru.netology.nmedia.enumeration.AttachmentType
+
 fun Long.statisticsToString(): String {
     val stat = this
     return when {
@@ -19,6 +21,18 @@ fun Long.statisticsToString(): String {
     }
 }
 
+/*data class Attachment(
+    val url: String,
+    val description: String,
+    val type: String    // изначально только IMAGE
+)*/
+
+data class Attachment(
+    val url: String,
+    val description: String?,
+    val type: AttachmentType,
+)
+
 /*ВНИМАНИЕ! поле likes должно называться именно так,
 * чтобы работало преобразование gson.fromJson в объект Post из текста, пришедшего с сервера
 * НО!!!
@@ -26,11 +40,20 @@ fun Long.statisticsToString(): String {
 data class Post(
     val id: Long,
     val author: String,
+    val authorAvatar: String,
     val content: String,
     val videoLink: String? = null,
-    val published: String,
+    val published: String,  // val date: Int = (System.currentTimeMillis() / 86400000).toInt()
     val likedByMe: Boolean = false,
     val likes: Int,
     val countShare: Int,
-    val countViews: Int
-)
+    val countViews: Int,
+    val attachment: Attachment? = null
+) {
+    fun avatarFileName() = when (author) {
+        "Нетология", "Netology" -> "netology.jpg"
+        "Сбер" -> "sber.jpg"
+        "Тинькофф", "Tinkoff" -> "tcs.jpg"
+        else -> ""
+    }
+}

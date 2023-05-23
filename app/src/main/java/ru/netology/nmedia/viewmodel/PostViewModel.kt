@@ -2,28 +2,31 @@ package ru.netology.nmedia.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.*
+import org.chromium.base.Callback
 import ru.netology.nmedia.dto.Post
-import ru.netology.nmedia.repository.*
 import ru.netology.nmedia.model.FeedModel
+import ru.netology.nmedia.repository.*
 import ru.netology.nmedia.util.SingleLiveEvent
-import java.io.IOException
-import kotlin.concurrent.thread
+
+//import java.io.IOException
+//import kotlin.concurrent.thread
 
 
 private val emptyPost = Post(
     id = 0,
     author = currentAuthor(),
+    authorAvatar = "",
     content = "",
     published = "",
     likedByMe = false,
     likes = 0,
     countShare = 0,
-    countViews = 0
+    countViews = 0,
+    attachment = null
 )
 
 private fun currentAuthor(): String = "Me"  // Надо вычислять текущего автора
 
-//class PostViewModel : ViewModel()
 class PostViewModel(application: Application) : AndroidViewModel(application) {
     // упрощённый вариант
     private val repository: PostRepository = PostRepositoryImpl()
@@ -47,37 +50,27 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
         // Начинаем загрузку
         _data.value = FeedModel(loading = true) // Аналог _data.setValue(FeedModel(loading = true))
-        repository.getAll(object : PostsCallBack<List<Post>> {
-            override fun onSuccess(data: List<Post>) {
-                _data.postValue(FeedModel(posts = data, empty = data.isEmpty()))
+        repository.getAllAsync(object : PostRepository.Callback<List<Post>> {
+            override fun onSuccess(posts: List<Post>) {
+                _data.value = FeedModel(posts = posts, empty = posts.isEmpty())
             }
 
             override fun onError(e: Exception) {
-                _data.postValue(FeedModel(error = true))
+                _data.value = FeedModel(error = true)
             }
         })
     }
 
     fun save() {
         edited.value?.let {
-            // Начало загрузки
-            _postCreateLoading.value = true // Пока еще мы в главном потоке
-            repository.save(it, object : PostsCallBack<Post> {
-                // Теперь мы в фоновом потоке в обоих методах
-                override fun onSuccess(data: Post) {
-                    _postCreated.postValue(Unit) // Передаем сообщение, которое обрабатывается однократно
-                    // Если сохранились, то уже нет смысла в черновике (даже если сохранили другой пост)
-                    _postCreateLoading.postValue(false) // Конец загрузки
-                    postDraftContent("") // Чистим черновик, т.к. успешно вернулся результат и вызван CallBack
-                }
-
-                override fun onError(e: Exception) {
-                    _data.postValue(FeedModel(error = true))
-                }
+            repository.save(it, object : PostRepository.Callback<Post> {
+                // TODO:
             })
+            _postCreated.value = Unit
         }
-        // Это снова главный поток (причем, значение edited уже передано в фоновый поток и больше нам не нужно)
-        quitEditing()   // Поэтому используем метод главного потока
+        //edited.value = empty
+
+        quitEditing()
     }
 
 
@@ -91,31 +84,39 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun likeById(id: Long) {
-
-        // Оптимистичная модель
+        // оптимистичная модель
         val old = _data.value?.posts.orEmpty()
+        var ratedPost: Post = emptyPost
         _data.value =
             _data.value?.copy(posts = _data.value?.posts.orEmpty() // Пока еще главный поток
                 .map { post ->
                     if (post.id == id) {
-                        post.copy(
+                        ratedPost = post.copy(
                             likedByMe = !post.likedByMe,
                             likes = post.likes + if (post.likedByMe) -1 else 1
                         )
+                        ratedPost   // Одновременно запомним и изменим обновленный пост в списке
                     } else post
                 }
             )
 
-        repository.likeById(id, object : PostsCallBack<Unit> {
-            // А тут уже все методы будут в фоновом потоке
-            override fun onError(e: Exception) {
-                _data.postValue(_data.value?.copy(posts = old))
-            }
-
-            override fun onSuccess(data: Unit) {
+        // Если даже пост не найден, и id остался нулевой (что маловероятно),
+        // то все равно передадим его на сервер - пусть сервер вернет ошибку
+        repository.likeById(id, object : PostRepository.Callback<Post> {
+            override fun onSuccess(posts: Post) {
                 // Ничего не делаем, потому что мы уже все сделали до вызова в расчете на успех
             }
+
+            override fun onError(e: Exception) {
+
+
+
+                _data.postValue(_data.value?.copy(posts = old))
+
+
+            }
         })
+
         // завершение обработки лайка
     }
 
@@ -125,7 +126,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun removeById(id: Long) {
-        // Оптимистичная модель - обновляемся до получения ответа от сервера
+        // TODO
+        /*// Оптимистичная модель - обновляемся до получения ответа от сервера
         val old = _data.value?.posts.orEmpty()
         _data.value =
             _data.value?.copy(posts = _data.value?.posts.orEmpty() // Пока еще главный поток
@@ -141,7 +143,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             override fun onSuccess(data: Unit) {
                 // Ничего не делаем, потому что мы уже все сделали до вызова в расчете на успех
             }
-        })
+        })*/
 
     }
 

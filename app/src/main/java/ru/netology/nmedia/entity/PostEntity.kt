@@ -1,18 +1,23 @@
 package ru.netology.nmedia.entity
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+import androidx.room.*
+import ru.netology.nmedia.dto.Attachment
 import ru.netology.nmedia.dto.Post
+import ru.netology.nmedia.enumeration.AttachmentType
 
 @Entity
 data class PostEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long,
     val author: String,
+    val authorAvatar: String,
     val content: String,
     val published: String,
     val likedByMe: Boolean,
     val likes: Int = 0,
+    @Embedded
+    var attachment: AttachmentEmbeddable?,
+//    val attachment: Attachment? = null,
 ) {
     // Пока мы работаем только с теми полями, которые были описаны в задании для серверной части
     // далее наверняка добавятся все нужные поля
@@ -25,7 +30,19 @@ data class PostEntity(
         // Если ссылка есть в тексте, то поместим ее в отдельное поле
         // Если нет ссылки, то поле ссылки будет пустым
 
-        return Post(id, author, content, match?.value, published, likedByMe, likes, 0, 0)
+        return Post(
+            id,
+            author,
+            authorAvatar,
+            content,
+            match?.value,
+            published,
+            likedByMe,
+            likes,
+            0,
+            0,
+            attachment?.toDto(),
+        )
     }
 
 
@@ -34,53 +51,32 @@ data class PostEntity(
             PostEntity(
                 dto.id,
                 dto.author,
+                dto.authorAvatar,
                 dto.content,
                 dto.published,
                 dto.likedByMe,
-                dto.likes
+                dto.likes,
+                AttachmentEmbeddable.fromDto(dto.attachment),
             )
 
     }
 }
 
-/*@Entity
-data class PostEntity(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long,
-    val author: String,
-    val content: String,
-    val videoLink: String? = null,
-    val published: String,
-    val likedByMe: Boolean,
-    val countLikes: Int = 0,
-    val countShare: Int = 0,
-    val countViews: Int = 0
+//@Embeddable
+data class AttachmentEmbeddable(
+    var url: String,
+    //@Column(columnDefinition = "TEXT")
+    var description: String?,
+    //@Enumerated(EnumType.STRING)
+    var type: String,
 ) {
-    fun toDto() = Post(
-        id,
-        author,
-        content,
-        videoLink,
-        published,
-        likedByMe,
-        countLikes,
-        countShare,
-        countViews
-    )
+    fun toDto() = Attachment(url, description, AttachmentType.valueOf(type))
 
     companion object {
-        fun fromDto(dto: Post) =
-            PostEntity(
-                dto.id,
-                dto.author,
-                dto.content,
-                dto?.videoLink ?: "",
-                dto.published,
-                dto.likedByMe,
-                dto.countLikes,
-                dto.countShare,
-                dto.countViews
-            )
+        fun fromDto(dto: Attachment?) = dto?.let {
+            AttachmentEmbeddable(it.url, it.description, it.type.toString())
+        }
     }
-}*/
+}
+
 
