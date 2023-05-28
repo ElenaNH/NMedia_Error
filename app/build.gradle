@@ -22,6 +22,7 @@ android {
     }
 
     buildFeatures.viewBinding = true
+    buildFeatures.buildConfig = true
 
     buildTypes {
         release {
@@ -46,12 +47,11 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             manifestPlaceholders.usesCleartextTraffic = false
-            //buildConfigField "String", "BASE_URL", '"https://netomedia.ru"'
+            buildConfigField "String", "BASE_URL", '"https://netomedia.ru"'
         }
         debug {
             manifestPlaceholders.usesCleartextTraffic = true
-            //buildConfigField "String", "BASE_URL", '"https://10.0.2.2:9999"'
-            //Build Type 'debug' contains custom BuildConfig fields, but the feature is disabled.
+            buildConfigField "String", "BASE_URL", '"http://10.0.2.2:9999"'
         }
     }
 }

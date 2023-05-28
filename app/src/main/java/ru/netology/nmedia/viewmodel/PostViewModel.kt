@@ -2,8 +2,8 @@ package ru.netology.nmedia.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.*
-import org.chromium.base.Callback
 import ru.netology.nmedia.dto.Post
+import ru.netology.nmedia.enumeration.PostActionType
 import ru.netology.nmedia.model.FeedModel
 import ru.netology.nmedia.repository.*
 import ru.netology.nmedia.util.SingleLiveEvent
@@ -35,12 +35,18 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         get() = _data
     val edited = MutableLiveData(emptyPost)
     val draft = MutableLiveData(emptyPost)  // И будем сохранять это только "in memory"
-    private val _postCreated = SingleLiveEvent<Unit>()
-    val postCreated: LiveData<Unit>
-        get() = _postCreated
     private val _postCreateLoading = MutableLiveData<Boolean>()
+    private val _postCreated = SingleLiveEvent<Unit>()
+    private val _postActionFailed = SingleLiveEvent<PostActionType>()  // Однократная ошибка
+    private val _postActionSucceed = SingleLiveEvent<PostActionType>()  // Однократный успех (альтернатива ошибке)
     val postCreateLoading: LiveData<Boolean>
         get() = _postCreateLoading
+    val postCreated: LiveData<Unit>
+        get() = _postCreated
+    val postActionFailed: LiveData<PostActionType>
+        get() = _postActionFailed
+    val postActionSucceed: LiveData<PostActionType>
+        get() = _postActionSucceed
 
     init {
         loadPosts()
@@ -62,13 +68,25 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun save() {
+
         edited.value?.let {
+            _postCreateLoading.value = true
             repository.save(it, object : PostRepository.Callback<Post> {
-                // TODO:
+                override fun onSuccess(posts: Post) {
+                    _postCreated.postValue(Unit) // Передаем сообщение, к-е обрабатывается однократно
+                    // Если сохранились, то уже нет смысла в черновике (даже если сохранили другой пост)
+                    _postCreateLoading.postValue(false) // Конец загрузки
+                    postDraftContent("") // Чистим черновик, т.к. успешно вернулся результат и вызван CallBack
+                    _postActionSucceed.postValue(PostActionType.ACTION_POST_CREATION)
+                }
+
+                override fun onError(e: Exception) {
+                    // Всплывающее сообщение об ошибке записи
+                    _postActionFailed.postValue(PostActionType.ACTION_POST_CREATION)
+
+                }
             })
-            _postCreated.value = Unit
         }
-        //edited.value = empty
 
         quitEditing()
     }
@@ -104,18 +122,18 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         // то все равно передадим его на сервер - пусть сервер вернет ошибку
         repository.likeById(id, object : PostRepository.Callback<Post> {
             override fun onSuccess(posts: Post) {
+                _postActionSucceed.postValue(PostActionType.ACTION_POST_LIKE_CHANGE)
                 // Ничего не делаем, потому что мы уже все сделали до вызова в расчете на успех
             }
 
             override fun onError(e: Exception) {
+                _postActionFailed.postValue(PostActionType.ACTION_POST_LIKE_CHANGE)
 
-
-
+                // Раз не ставится лайк, то вернемся к предыдущим данным
                 _data.postValue(_data.value?.copy(posts = old))
-
-
             }
         })
+
 
         // завершение обработки лайка
     }
@@ -127,23 +145,25 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
     fun removeById(id: Long) {
         // TODO
-        /*// Оптимистичная модель - обновляемся до получения ответа от сервера
+        // Оптимистичная модель - обновляемся до получения ответа от сервера
         val old = _data.value?.posts.orEmpty()
         _data.value =
             _data.value?.copy(posts = _data.value?.posts.orEmpty() // Пока еще главный поток
                 .filter { it.id != id }
             )
-
-        repository.removeById(id, object : PostsCallBack<Unit> {
-            // А тут уже все методы будут в фоновом потоке
-            override fun onError(e: Exception) {
-                _data.postValue(_data.value?.copy(posts = old))
-            }
-
-            override fun onSuccess(data: Unit) {
+        repository.removeById(id, object : PostRepository.Callback<Unit> {
+            override fun onSuccess(posts: Unit) {
+                super.onSuccess(posts)
+                _postActionSucceed.postValue(PostActionType.ACTION_POST_DELETION)
                 // Ничего не делаем, потому что мы уже все сделали до вызова в расчете на успех
             }
-        })*/
+
+            override fun onError(e: Exception) {
+                super.onError(e)
+                _postActionFailed.postValue(PostActionType.ACTION_POST_DELETION)
+                _data.postValue(_data.value?.copy(posts = old))
+            }
+        })
 
     }
 

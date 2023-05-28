@@ -16,12 +16,11 @@ import ru.netology.nmedia.adapter.PostsAdapter
 import ru.netology.nmedia.viewmodel.PostViewModel
 import ru.netology.nmedia.databinding.FragmentFeedBinding
 //
-import android.content.Intent
+import android.view.Gravity
+import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
-import androidx.navigation.findNavController
-import ru.netology.nmedia.adapter.OnInteractionListener
-import ru.netology.nmedia.dto.Post
+import ru.netology.nmedia.enumeration.PostActionType
 
 
 class FeedFragment : Fragment() {
@@ -70,22 +69,44 @@ class FeedFragment : Fragment() {
     private fun subscribe() {
         // Подписки:
 
-        // Подписка на список сообщений
-        /*viewModel.data.observe(viewLifecycleOwner) { posts ->
-            val newPost = (adapter.currentList.size < posts.size) // элементов в списке стало больше
-            // далее обновление списка отображаемых постов в RecyclerView
-            adapter.submitList(posts) {
-                // далее - прокрутка до верхнего элемента списка (с индексом 0)
-                // ее нужно делать только если обновился список в адаптере
-                // иначе он не к верхнему прокрутит, а ко второму
-                if (newPost) binding.list.smoothScrollToPosition(0)
-            }
-        }*/
+        // Подписка на FeedModel - список сообщений и состояние этого списка
         viewModel.data.observe(viewLifecycleOwner) { state ->
             adapter.submitList(state.posts)
             binding.progress.isVisible = state.loading
             binding.errorGroup.isVisible = state.error
             binding.emptyText.isVisible = state.empty
+        }
+        // Подписка на однократную ошибку
+        viewModel.postActionFailed.observe(viewLifecycleOwner) { // Сообщаем однократно
+            val toastInfo = when (it) {
+                PostActionType.ACTION_POST_CREATION -> getString(R.string.error_post_creation)
+                PostActionType.ACTION_POST_LIKE_CHANGE -> getString(R.string.error_post_like_change)
+                PostActionType.ACTION_POST_DELETION -> getString(R.string.error_post_deletion)
+            }
+            // Всплывающее сообщение
+            val warnToast = Toast.makeText(
+                this.activity,
+                toastInfo,
+                Toast.LENGTH_SHORT
+            )
+            warnToast.setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+            warnToast.show()
+        }
+        // Подписка на однократный успех
+        viewModel.postActionFailed.observe(viewLifecycleOwner) { // Сообщаем однократно
+            val toastInfo = when (it) {
+                PostActionType.ACTION_POST_CREATION -> getString(R.string.succeed_post_creation)
+                PostActionType.ACTION_POST_LIKE_CHANGE -> getString(R.string.succeed_post_like_change)
+                PostActionType.ACTION_POST_DELETION -> getString(R.string.succeed_post_deletion)
+            }
+            // Всплывающее сообщение
+            val warnToast = Toast.makeText(
+                this.activity,
+                toastInfo,
+                Toast.LENGTH_SHORT
+            )
+            warnToast.setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+            warnToast.show()
         }
 
     }
@@ -106,7 +127,8 @@ class FeedFragment : Fragment() {
                 R.id.action_feedFragment_to_newPostFragment,
                 Bundle().apply {
                     //textArg = ""  // В запускаемый фрагмент передаем пустое содержимое нового поста
-                    textArg = viewModel.getDraftContent()  // В запускаемый фрагмент передаем содержимое черновика
+                    textArg =
+                        viewModel.getDraftContent()  // В запускаемый фрагмент передаем содержимое черновика
                 }
             )
 

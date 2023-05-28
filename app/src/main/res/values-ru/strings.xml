@@ -28,5 +28,11 @@
     <string name="channel_remote_name">Сообщения сервера</string>
     <string name="channel_remote_description">Сообщения удаленного сервера</string>
     <string name="notification_new_post">%1$s опубликовал сообщение</string>
+    <string name="error_post_creation">Не удается создать пост :(</string>
+    <string name="error_post_like_change">Ошибка лайка!</string>
+    <string name="error_post_deletion">Не удается удалить пост :(</string>
+    <string name="succeed_post_creation">Создан пост</string>
+    <string name="succeed_post_like_change">Лайк изменен</string>
+    <string name="succeed_post_deletion">Пост удален</string>
 
 </resources>

@@ -34,5 +34,11 @@
     <string name="channel_remote_name">Server notifications</string>
     <string name="channel_remote_description">Notifications from remote server</string>
     <string name="notification_new_post">%1$s published new post</string>
+    <string name="error_post_creation">Cannot create post :(</string>
+    <string name="error_post_like_change">Like or dislike error!</string>
+    <string name="error_post_deletion">Cannot delete post :(</string>
+    <string name="succeed_post_creation">Post created</string>
+    <string name="succeed_post_like_change">Like status changed</string>
+    <string name="succeed_post_deletion">Post deleted</string>
 
 </resources>
