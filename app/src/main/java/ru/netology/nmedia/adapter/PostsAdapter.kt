@@ -76,6 +76,9 @@ class PostViewHolder(
             ibtnLikes.text =
                 post.likes.toLong().statisticsToString() // Число лайков прямо на кнопке
             ibtnShare.text = post.countShare.toLong().statisticsToString()
+            if (post.unsaved == 1) btnViews.setIconResource(R.drawable.ic_eye_of_view_off)
+            else btnViews.setIconResource(R.drawable.ic_eye_of_view)
+
             btnViews.text = post.countViews.toLong().statisticsToString()
 
 
@@ -118,7 +121,8 @@ class PostViewHolder(
             }
 
             // И после всех привязок начинаем, наконец, грузить картинку
-            val url = "${BASE_URL}/avatars/${post.avatarFileName()}"
+            //val url = "${BASE_URL}/avatars/${post.avatarFileName()}"
+            val url = "${BASE_URL}/avatars/${post.authorAvatar}"
             Glide.with(binding.imgAvatar)
                 .load(url)
                 .circleCrop()

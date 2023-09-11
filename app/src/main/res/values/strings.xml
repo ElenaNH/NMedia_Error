@@ -24,6 +24,7 @@
     <string name="error_empty_content">Content can\'t be empty</string>
     <string name="chooser_share_post">Share...</string>
     <string name="add_post">Add post</string>
+    <string name="new_posts">View new posts</string>
     <string name="retry_loading">Retry</string>
     <string name="empty_posts">There are no posts.\nIf you create a new post, it will appear here</string>
     <string name="error_loading">Something went wrong. Try again later</string>
@@ -34,10 +35,10 @@
     <string name="channel_remote_name">Server notifications</string>
     <string name="channel_remote_description">Notifications from remote server</string>
     <string name="notification_new_post">%1$s published new post</string>
-    <string name="error_post_creation">Cannot create post :(</string>
+    <string name="error_post_saving">The post will be sent to server by the next connection</string>
     <string name="error_post_like_change">Like or dislike error!</string>
-    <string name="error_post_deletion">Cannot delete post :(</string>
-    <string name="succeed_post_creation">Post created</string>
+    <string name="error_post_deletion">The post will be removed from server by the next connection</string>
+    <string name="succeed_post_saving">Post saved</string>
     <string name="succeed_post_like_change">Like status changed</string>
     <string name="succeed_post_deletion">Post deleted</string>
 

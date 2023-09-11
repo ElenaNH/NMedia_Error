@@ -14,6 +14,7 @@ import ru.netology.nmedia.activity.FeedFragment
 import ru.netology.nmedia.activity.PostFragment
 import ru.netology.nmedia.adapter.OnInteractionListener
 import ru.netology.nmedia.enumeration.AttachmentType
+import ru.netology.nmedia.util.ARG_POST_UNCONFIRMED
 import ru.netology.nmedia.viewmodel.PostViewModel
 
 class PostInteractionListenerImpl(viewModelInput: PostViewModel, fragmentInput: Fragment) :
@@ -24,7 +25,7 @@ class PostInteractionListenerImpl(viewModelInput: PostViewModel, fragmentInput: 
     private val fragmentParent = fragmentInput
 
     override fun onLike(post: Post) {
-        viewModel.likeById(post.id)
+        viewModel.likeById(post.unconfirmed,post.id, !post.likedByMe)
     }
 
     override fun onShare(post: Post) {
@@ -39,11 +40,11 @@ class PostInteractionListenerImpl(viewModelInput: PostViewModel, fragmentInput: 
         // А здесь мы могли запустить наш intent без красоты, либо улучшенный shareIntent
         fragmentParent.startActivity(shareIntent)
         // Увеличиваем счетчик шаринга
-        viewModel.shareById(post.id)
+        viewModel.shareById(post.unconfirmed, post.id)
     }
 
     override fun onRemove(post: Post) {
-        viewModel.removeById(post.id)
+        viewModel.removeById(post.unconfirmed, post.id)
         if (!(fragmentParent is FeedFragment))
             fragmentParent.findNavController()
                 .navigateUp() //  Закрытие текущего фрагмента (если это не стартовый FeedFragment)
@@ -95,6 +96,7 @@ class PostInteractionListenerImpl(viewModelInput: PostViewModel, fragmentInput: 
             R.id.action_feedFragment_to_postFragment,
             Bundle().apply {
                 putLong(ARG_POST_ID, post.id)
+                putInt(ARG_POST_UNCONFIRMED, post.unconfirmed)
                 // Почему-то написание еще одного синглтона не кажется хорошей идеей
                 // Не писать же синглтон под каждый аргумент - чем это проще putLong?
 

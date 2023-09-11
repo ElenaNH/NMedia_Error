@@ -1,6 +1,7 @@
 package ru.netology.nmedia.dto
 
 import ru.netology.nmedia.enumeration.AttachmentType
+import ru.netology.nmedia.util.currentAuthor
 
 fun Long.statisticsToString(): String {
     val stat = this
@@ -48,12 +49,39 @@ data class Post(
     val likes: Int,
     val countShare: Int,
     val countViews: Int,
-    val attachment: Attachment? = null
+    val attachment: Attachment? = null,
+    val unconfirmed: Int = 0, // Все пришедшее с сервера будет "confirmed"
+    val unsaved: Int = 0, // Все пришедшее с сервера будет "saved" (ведь на сервере нет этого поля)
+    val hidden: Int,
 ) {
-    fun avatarFileName() = when (author) {
+
+ companion object {
+        fun getEmptyPost(): Post {
+            return Post(
+                id = 0,
+                author = currentAuthor(),
+                authorAvatar = "",
+                content = "",
+                published = "",
+                likedByMe = false,
+                likes = 0,
+                countShare = 0,
+                countViews = 0,
+                attachment = null,
+                unconfirmed = 1,
+                unsaved = 1,
+                hidden = 0,
+            )       // Новый пустой пост должен быть видим
+        }
+    }
+
+    // это пора удалить - устарело
+/*    fun avatarFileName() = when (author) {
         "Нетология", "Netology" -> "netology.jpg"
         "Сбер" -> "sber.jpg"
         "Тинькофф", "Tinkoff" -> "tcs.jpg"
         else -> ""
-    }
+    }*/
+
+
 }
