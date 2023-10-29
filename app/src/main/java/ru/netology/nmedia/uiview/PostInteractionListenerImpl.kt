@@ -14,6 +14,7 @@ import ru.netology.nmedia.activity.FeedFragment
 import ru.netology.nmedia.activity.PostFragment
 import ru.netology.nmedia.adapter.OnInteractionListener
 import ru.netology.nmedia.enumeration.AttachmentType
+import ru.netology.nmedia.model.PhotoModel
 import ru.netology.nmedia.util.ARG_POST_UNCONFIRMED
 import ru.netology.nmedia.viewmodel.PostViewModel
 
@@ -69,6 +70,7 @@ class PostInteractionListenerImpl(viewModelInput: PostViewModel, fragmentInput: 
                 Bundle().apply {
                     textArg =
                         post.content.toString()  // В запускаемый фрагмент передаем данные редактируемого поста
+                        //viewModel.setPhoto() НАДО ВЫЯСНИТЬ Uri и File
                 }
             ) // Когда тот фрагмент закроется, опять окажемся здесь (по стеку)
     }

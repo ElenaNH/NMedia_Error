@@ -20,6 +20,7 @@ import android.view.Gravity
 import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
+import androidx.recyclerview.widget.RecyclerView.AdapterDataObserver
 import com.google.android.material.snackbar.Snackbar
 import ru.netology.nmedia.enumeration.PostActionType
 
@@ -85,8 +86,24 @@ class FeedFragment : Fragment() {
             binding.emptyText.isVisible = data.empty
         }
         viewModel.newerCount.observe(viewLifecycleOwner) {
-            binding.someUnread.isVisible = (viewModel.countHidden() > 0)
+            // Если ответ сервера нулевой, то видимость плашки не меняем
+            // Если ненулевой, то по нашей логике первая пачка постов будет сразу видна
+            // А вторая и последующие пачки обновлений будут скрыты
+            // Вот тогда и покажем плашку
+            if (it > 0)
+                binding.someUnread.isVisible = true
+            // else - ничего не делаем, кнопка пропадет после обновления recyclerview и прокрутки
         }
+
+        // Подписка на адаптер
+        adapter.registerAdapterDataObserver(object : AdapterDataObserver() {
+            override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
+                if (positionStart == 0) {
+                    binding.someUnread.isVisible = false
+                    binding.list.smoothScrollToPosition(0)
+                }
+            }
+        })
 
         // Подписка на однократную ошибку
         viewModel.postActionFailed.observe(viewLifecycleOwner) { // Сообщаем однократно
@@ -121,8 +138,9 @@ class FeedFragment : Fragment() {
         binding.someUnread.setOnClickListener {
             // Показать скрытые посты
             viewModel.setAllVisible()
-            // Прокрутить к верхнему посту
-
+            // Скрыть кнопку
+            it.isVisible = false
+            // Прокрутить к верхнему посту можно в наблюдателе за адаптером (подписаться на него)
 
         }
 

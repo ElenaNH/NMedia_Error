@@ -49,9 +49,9 @@ class PostViewHolder(
     fun bind(post: Post) {
         val BASE_URL = "http://10.0.2.2:9999"
         binding.apply {
-            if (post.id == 8L) {
-                val myPoint = 1
-            }
+//            if (post.id == 8L) {
+//                val myPoint = 1
+//            }
             messageAuthor.text = post.author
             messagePublished.text = post.published
             messageContent.text = post.content
@@ -59,9 +59,9 @@ class PostViewHolder(
             if ((post.attachment != null) and (post.attachment?.type == AttachmentType.IMAGE)) {
                 // Сначала сбросим старое изображение
                 videoLinkPic.setImageDrawable(null)
-                // Теперь загрузим новое изображение
+                // Теперь загрузим новое изображение (ранее было в папке images, теперь - media
                 val imgUrl =
-                    "${BASE_URL}/images/${post.attachment?.url ?: ""}" // Если нет аттача, то мы сюда не попадем, но все же обработаем null
+                    "${BASE_URL}/media/${post.attachment?.url ?: ""}" // Если нет аттача, то мы сюда не попадем, но все же обработаем null
                 Glide.with(binding.videoLinkPic)
                     .load(imgUrl)
 //                    .placeholder(R.drawable.ic_loading_100dp)

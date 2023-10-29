@@ -36,4 +36,9 @@
     <string name="succeed_post_like_change">Лайк изменен</string>
     <string name="succeed_post_deletion">Пост удален</string>
 
+
+    <string name="save">Сохранить</string>
+    <string name="remove">Удалить</string>
+
+
 </resources>

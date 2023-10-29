@@ -6,33 +6,32 @@ import kotlinx.coroutines.flow.*
 //import kotlinx.coroutines.flow.flowOn
 //import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.delay
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.map
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.newFixedThreadPoolContext
-import kotlinx.coroutines.supervisorScope
-import retrofit2.Call
-import retrofit2.Callback
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import retrofit2.Response
 import ru.netology.nmedia.api.PostsApi
 import ru.netology.nmedia.dao.PostDao
+import ru.netology.nmedia.dto.Attachment
+import ru.netology.nmedia.dto.Media
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.entity.PostEntity
 import ru.netology.nmedia.entity.fromDto
 import ru.netology.nmedia.entity.toDto
+import ru.netology.nmedia.enumeration.AttachmentType
 import ru.netology.nmedia.util.ConsolePrinter
 //import java.io.IOException
 //import java.util.concurrent.TimeUnit
 //import kotlin.Exception
-import java.lang.RuntimeException
+//import java.lang.RuntimeException
 import ru.netology.nmedia.error.ApiError
-import ru.netology.nmedia.error.AppError
+import ru.netology.nmedia.model.PhotoModel
+import kotlin.RuntimeException
 
 
 class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
     override val data: Flow<List<Post>> = postDao.getAll()
-        .map { it.toDto() }
+        .map { it.toDto() }  //.map { it.map { entity -> entity.copy(hidden = 0) }.toDto() } - скрытых мы не достанем оттуда
         .flowOn(Dispatchers.Default)
 
 
@@ -62,9 +61,9 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
 
         val postEntitiesForInserting = posts.fromDto()
             .filterNot { excludeIds.contains(it.id) }
-//            .map { entity ->
-//                entity.copy(hidden = if (postDao.isEmpty()) 0 else 1)
-//            } // Если в базе не было постов, то все покажем, а иначе новые сделаем скрытыми
+            .map { entity ->
+                entity.copy(hidden = 0)
+            } // Если была команда на полное обновление, то ничего не скрываем, все visible
 
         // Обновим только то, что не нужно прежде проталкивать на сервер
         if (postEntitiesForInserting.count() > 0)
@@ -131,7 +130,7 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
         // Будем выбрасывать исключение во вьюмодель только после некоторой обработки
         var response: Response<Post>? = null
         try {
-            // Затем отправляем запрос удаления на сервер
+            // Затем отправляем запрос сохранения на сервер
             response = PostsApi.retrofitService.save(
                 if (unconfirmedPost) post.copy(
                     id = 0,
@@ -172,6 +171,85 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
         // затем отправляем все измененные и все удаляемые
         // это можно делать даже асинхронно, но мы пока оставим так
 
+    }
+
+    override suspend fun saveWithAttachment(post: Post, model: PhotoModel) {
+        // Сначала добавляем в локальную БД в "неподтвержденном" статусе
+        val newPost = (post.id == 0L)
+        val unconfirmedPost = newPost || (post.unconfirmed != 0)
+        if (newPost) ConsolePrinter.printText("New post before inserting...")
+        val postIdLoc = if (newPost) {
+            postDao.insertReturningId(PostEntity.fromDto(post)) // Генерируем id: это расплата за другие удобства
+        } else {
+            postDao.save(PostEntity.fromDto(post))
+            post.id
+        }
+
+        if (newPost) ConsolePrinter.printText("Added new post with id = $postIdLoc")
+        else ConsolePrinter.printText("Updated content of post with id = $postIdLoc")
+
+        // Будем выбрасывать исключение во вьюмодель только после некоторой обработки
+        var response: Response<Post>? = null
+        try {
+            val media = upload(model)
+            // Затем отправляем запрос сохранения на сервер
+            response = PostsApi.retrofitService.save(
+                if (unconfirmedPost) post.copy(
+                    id = 0,
+                    unconfirmed = 0,
+                    attachment = Attachment(url = media.id, type = AttachmentType.IMAGE)
+                ) else post
+            )
+            ConsolePrinter.printText("HAVE GOT SAVE RESPONSE")
+        } catch (e: Exception) {
+            ConsolePrinter.printText("HAVE NOT GOT SAVE RESPONSE")
+            // Просто выбрасываем ошибку, а пост висит в очереди на запись
+            throw RuntimeException(e.message.toString())
+        }
+        if (!(response?.isSuccessful ?: false)) {
+            throw RuntimeException(response?.message() ?: "No server response")
+        }
+        val responsePost = response?.body() ?: throw RuntimeException("body is null")
+
+        // Если вернулся ожидаемый Post,а не null, то
+
+        // Если это записался неподтвержденный пост, то отметим его подтвержденным серверным id при unconfirmed = 0
+        if (unconfirmedPost && (responsePost.id != 0L)) {
+            // Конфликт ключей даже при асинхронности нам не грозит, ведь ключ двупольный
+            // Синхронизируем ключ поста с данными сервера
+            postDao.confirmWithPersistentId(postIdLoc, responsePost.id)
+            ConsolePrinter.printText("POST CONFIRMED")
+        }
+        // Обновляем пришедший пост
+        // К этому моменту первичный ключ железно синхронизирован с сервером, можем обновлять целиком запись
+        postDao.insert(PostEntity.fromDto(responsePost).copy(unconfirmed = 0))
+
+
+        // ПОРЯДОК:
+        // Мы однократно ожидаем ответ сервера.
+        // Если ответ есть, то в лок.БД отмечаем подтверждение и правильный id, затем обновляем все поля
+        // Если ответ не пришел - тогда пост остается unconfirmed
+        // При любом следующем запросе loadPosts:
+        // отправляем серверу все unconfirmed в порядке возрастания id
+        // затем отправляем все измененные и все удаляемые
+        // это можно делать даже асинхронно, но мы пока оставим так
+
+    }
+
+    private suspend fun upload(photoModel: PhotoModel): Media {
+        val part = MultipartBody.Part.createFormData(
+            "file",
+            photoModel.file.name,
+            photoModel.file.asRequestBody()
+        )
+
+        val response = PostsApi.retrofitService.saveMedia(part)
+
+        if (!response.isSuccessful) {
+            throw RuntimeException(response.errorBody()?.string())
+        }
+
+        return requireNotNull(response.body())
     }
 
     override suspend fun removeById(unconfirmedStatus: Int, id: Long) {
@@ -275,9 +353,9 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
 
     override fun getNewerCount(id: Long): Flow<Int> = flow<Int> {
         // Пока я не типизировала интом (flow<Int>), справа отображалось {this:FlowCollector<Nothing>
-        // Почему??? Ведь в примерах было просто flow!!!
+        // Почему??? Ведь в п римерах было просто flow!!!
         while (true) {
-            delay(10_000L)
+            delay(120_000L)  // delay(10_000L)
             var response: Response<List<Post>>
             try {
                 response = PostsApi.retrofitService.getNewer(id)
@@ -287,10 +365,26 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
                     throw ApiError(response.code(), response.message())
                 }
                 val body = response.body() ?: throw ApiError(response.code(), response.message())
-                postDao.insert(body.fromDto())
-                emit(body.size)
+                //val doEmit = (data.count() != 0) - ЭТО НЕЛЬЗЯ БЫЛО ДЕЛАТЬ!!!
+                val maxVisibleLimit = postDao.maxConfirmedVisible() ?: 0L
+                // К пустому списку добавляем посты сразу // emit(body.size) ПРИ ЭТОМ НЕ ДЕЛАЕМ, т.к. все отобразили
+                // воспользуемся, что если есть хоть один подтвержденный пост, то maxVisible > 0
+                val hiddenPlan = if (maxVisibleLimit > 0L) 1 else 0
+                ConsolePrinter.printText("getNewerCount - maxVisibleLimit = $maxVisibleLimit & hiddenPlan = $hiddenPlan")
+                var doEmit: Boolean = true
+                postDao.insert(body.fromDto().map {
+                    it.copy(
+                        hidden = if (hiddenPlan == 0) 0
+                        else if (it.id <= maxVisibleLimit) 0
+                        else 1
+                    ) // Чтобы ранее показанные не скрывались, но обновление происходило
+                    // Вдруг мы уже отобразили ранее скрытые, пока ждали ответ сервера
+                })
+                ConsolePrinter.printText("getNewerCount = ${body.size} (inserted)")
+                if ((hiddenPlan != 0) && (body.size > 0))
+                    emit(body.size) // Если пришедшие посты видимы, то не будет эмиссии
             } catch (e: Exception) {
-                ConsolePrinter.printText("HAVE NOT GOT NEWER RESPONSE")
+                ConsolePrinter.printText("HAVE NOT GOT NEWER RESPONSE OR ERROR PROCESSING")
                 // Нельзя прерывать Flow, поэтому ошибку игнорируем //throw RuntimeException(e.message.toString())
                 ConsolePrinter.printText(e.message.toString())
             }

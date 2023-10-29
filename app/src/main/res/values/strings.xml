@@ -42,4 +42,9 @@
     <string name="succeed_post_like_change">Like status changed</string>
     <string name="succeed_post_deletion">Post deleted</string>
 
+
+    <string name="save">Save</string>
+    <string name="remove">Remove</string>
+
+
 </resources>

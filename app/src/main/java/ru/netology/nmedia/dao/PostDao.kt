@@ -12,14 +12,17 @@ import ru.netology.nmedia.util.ConsolePrinter
 
 @Dao
 interface PostDao {
-    @Query("SELECT * FROM PostEntity WHERE deleted = 0 ORDER BY unconfirmed DESC, id DESC")
+    @Query("SELECT * FROM PostEntity WHERE deleted = 0 AND hidden = 0 ORDER BY unconfirmed DESC, id DESC")
     fun getAll(): Flow<List<PostEntity>>
 
-//    @Query("SELECT COUNT(id) FROM PostEntity WHERE hidden <> 0")
-//    suspend fun countHidden(): Flow<Int?>
-
-    @Query("SELECT COUNT(*)  == 0 FROM PostEntity WHERE deleted = 0")
+    @Query("SELECT COUNT(*)  == 0 FROM PostEntity WHERE deleted = 0 AND hidden = 0")
     suspend fun isEmpty(): Boolean
+
+    @Query("SELECT COUNT(*) FROM PostEntity WHERE deleted = 0 AND hidden = 0")
+    suspend fun countVisible(): Long
+
+    @Query("SELECT MAX(id) FROM PostEntity WHERE deleted = 0 AND hidden = 0 AND unconfirmed = 0")
+    suspend fun maxConfirmedVisible(): Long?
 
     @Query("SELECT MAX(id) FROM PostEntity WHERE unconfirmed = :unconfirmedStatus")
     suspend fun getMaxId(unconfirmedStatus: Int): Long?  // Берем с учетом unconfirmed

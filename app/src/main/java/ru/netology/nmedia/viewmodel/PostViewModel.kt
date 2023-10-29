@@ -1,6 +1,7 @@
 package ru.netology.nmedia.viewmodel
 
 import android.app.Application
+import android.net.Uri
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.findFragment
@@ -20,13 +21,11 @@ import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.enumeration.PostActionType
 import ru.netology.nmedia.model.FeedModel
 import ru.netology.nmedia.model.FeedModelState
+import ru.netology.nmedia.model.PhotoModel
 import ru.netology.nmedia.repository.*
 import ru.netology.nmedia.util.ConsolePrinter
 import ru.netology.nmedia.util.SingleLiveEvent
-
-//import java.io.IOException
-//import kotlin.concurrent.thread
-
+import java.io.File
 
 private val emptyPost = Post.getEmptyPost()
 
@@ -35,40 +34,30 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: PostRepository =
         PostRepositoryImpl(AppDb.getInstance(application).postDao())
 
-    // в репозитории - все неудаленное; в данных - все нескрытое
-
-    // val data: LiveData<FeedModel> =
-    //        repository.data
-    //            .map {
-    //                val visiblePosts = it.filter { it.hidden == 0 }
-    //                // В конце возвращаем новые данные для списка постов
-    //                FeedModel(posts = visiblePosts, empty = visiblePosts.isEmpty())
-    //            }
-    //            .asLiveData(Dispatchers.Default)
-    val repositoryData: LiveData<FeedModel> =
+    val data: LiveData<FeedModel> =
         repository.data
-            .map {
-                FeedModel(posts = it, empty = it.isEmpty())
-            }
+            .map { FeedModel(posts = it, empty = it.isEmpty()) }
             .asLiveData(Dispatchers.Default)
-    val data: LiveData<FeedModel> = repositoryData
-        .map {
-            val visiblePosts = it.posts.filter { it.hidden == 0 }
-            // В конце возвращаем новые данные для списка постов
-            FeedModel(posts = visiblePosts, empty = visiblePosts.isEmpty())
-        }
 
     val edited = MutableLiveData(emptyPost)
     val draft = MutableLiveData(emptyPost)  // И будем сохранять это только "in memory"
 
     val newerCount: LiveData<Int> = data.switchMap {
-        repository.getNewerCount(it.posts.firstOrNull()?.id ?: 0L)
+        repository.getNewerCount(it.posts
+            .filter { it.unconfirmed == 0 }
+            .firstOrNull()?.id ?: 0L
+        )
             .asLiveData(Dispatchers.Default)
     }
 
-    private val _dataState = MutableLiveData(FeedModelState())
+    private val _dataState = MutableLiveData<FeedModelState>() //MutableLiveData(FeedModelState())
     val dataState: LiveData<FeedModelState>
         get() = _dataState
+
+    private val _photo = MutableLiveData<PhotoModel?>()
+    val photo: LiveData<PhotoModel?>
+        get() = _photo
+
     private val _postCreated = SingleLiveEvent<Unit>()
     val postCreated: LiveData<Unit>
         get() = _postCreated
@@ -120,6 +109,14 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun setPhoto(uri: Uri, file: File) {
+        _photo.value = PhotoModel(uri, file)
+    }
+
+    fun clearPhoto() {
+        _photo.value = null
+    }
+
     fun save() {
         // Тут просто вызываем метод репозитория
         // А уже в репозитории делаем так:
@@ -132,34 +129,39 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         // После этого уже пост точно подтвержден, так что обновляем его целиком
 
         viewModelScope.launch {
-            supervisorScope {
-                async {
-                    // Эта корутина будет отвечать за запись - ее не ждем
+            //supervisorScope {
+            async {
+                // Эта корутина будет отвечать за запись - ее не ждем
 
-                    try {
-                        edited.value?.let {
-                            repository.save(it)
-                            _postCreated.value = Unit  // Однократное событие
+                try {
+                    edited.value?.let {post ->
+                        photo.value?.let {
+                            repository.saveWithAttachment(post, it) // Если есть аттач
+                        } ?: repository.save(post)  // Если нет аттача
 
-                            ConsolePrinter.printText("MY SAVING TRY FINISHED")
-                        }
-                    } catch (e: Exception) {
-                        ConsolePrinter.printText("MY SAVING CATCH STARTED: ${e.message.toString()}")
-                        // Тут надо просто оставить запись в локальной БД в неподтвержденном статусе
-                        _postActionFailed.value = PostActionType.ACTION_POST_SAVING
+                        _postCreated.value = Unit  // Однократное событие
+
+                        ConsolePrinter.printText("MY SAVING TRY FINISHED")
                     }
-                }
-
-                launch {
-                    // Эта корутина будет отвечать за выход из режима редактирования
-
-                    _postSavingStarted.value = Unit // Однократное событие
-                    quitEditing() // сбрасываем редактирование при попытке записи (заменим на emptyPost)
-                    // Черновик сбросим, т.к. у нас будет либо подтвержденный, либо неподтвержденный пост
-                    postDraftContent("")
-
+                } catch (e: Exception) {
+                    ConsolePrinter.printText("MY SAVING CATCH STARTED: ${e.message.toString()}")
+                    // Тут надо просто оставить запись в локальной БД в неподтвержденном статусе
+                    _postActionFailed.value = PostActionType.ACTION_POST_SAVING
                 }
             }
+
+            launch {
+                // Эта корутина будет отвечать за выход из режима редактирования
+
+                _postSavingStarted.value = Unit // Однократное событие
+                ConsolePrinter.printText("Before quitEditing() call...")
+                quitEditing() // сбрасываем редактирование при попытке записи (заменим на emptyPost)
+                ConsolePrinter.printText("After quitEditing() call...")
+                // Черновик сбросим, т.к. у нас будет либо подтвержденный, либо неподтвержденный пост
+                postDraftContent("")
+
+            }
+            //}
         }
 
     }
@@ -208,15 +210,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun countHidden(): Int {
-//        var count = 0
-//        viewModelScope.launch {
-//            count = repository.countHidden()
-//        }
-//        return count
-
-        return repositoryData.value?.posts?.filter { it.hidden != 0 }?.count() ?: 0
-    }
 
     fun setAllVisible() {
         viewModelScope.launch {

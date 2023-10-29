@@ -35,7 +35,7 @@
             app:layout_constraintTop_toTopOf="parent" />
 
 
-        <!-- Далее идет разметка летны постов -->
+        <!-- Далее идет разметка ленты постов -->
         <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
             android:id="@+id/refreshLayout"
             android:layout_width="match_parent"

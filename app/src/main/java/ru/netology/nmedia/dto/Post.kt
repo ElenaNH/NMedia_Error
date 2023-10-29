@@ -22,15 +22,9 @@ fun Long.statisticsToString(): String {
     }
 }
 
-/*data class Attachment(
-    val url: String,
-    val description: String,
-    val type: String    // изначально только IMAGE
-)*/
-
 data class Attachment(
     val url: String,
-    val description: String?,
+    val description: String? = null, // этот параметр не удаляем, хоть и не используем его пока полноценно
     val type: AttachmentType,
 )
 
@@ -75,13 +69,7 @@ data class Post(
         }
     }
 
-    // это пора удалить - устарело
-/*    fun avatarFileName() = when (author) {
-        "Нетология", "Netology" -> "netology.jpg"
-        "Сбер" -> "sber.jpg"
-        "Тинькофф", "Tinkoff" -> "tcs.jpg"
-        else -> ""
-    }*/
+
 
 
 }
