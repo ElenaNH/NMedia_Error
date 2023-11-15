@@ -19,6 +19,7 @@ import ru.netology.nmedia.entity.PostEntity
 import ru.netology.nmedia.entity.fromDto
 import ru.netology.nmedia.entity.toDto
 import ru.netology.nmedia.enumeration.AttachmentType
+import ru.netology.nmedia.enumeration.PostSelectionType
 import ru.netology.nmedia.util.ConsolePrinter
 //import java.io.IOException
 //import java.util.concurrent.TimeUnit
@@ -71,72 +72,103 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
         //postDao.insert(posts.map { PostEntity.fromDto(it)})
 
         // Сюда дошли, значит можно вкинуть на сервер кучу подвисших новых/удаляемых постов
-        pushLocalDeleted()
-        pushLocalUnconfirmed()  // При неуспехе мы вываливаемся отсюда в вызывающую функцию
-        pushLocalConfirmedUnsaved()  // Пока отдельными функциями протолкнем
+        // Пока отдельными частями протолкнем
+        // При неуспехе мы вываливаемся отсюда в вызывающую функцию
+        pushLocalSelected(PostSelectionType.SELECTION_DELETED)
+        pushLocalSelected(PostSelectionType.SELECTION_UNCONFIRMED)
+        pushLocalSelected(PostSelectionType.SELECTION_CONFIRMED_UNSAVED)
     }
 
-    suspend fun pushLocalUnconfirmed() {
+    suspend fun pushLocalSelected(postSelectionType: PostSelectionType) {
         // Не обрабатываем ошибку, а вылетаем наверх
-        ConsolePrinter.printText("pushAllUnconfirmed started")
-        postDao.getAllUnconfirmed()
-            .toDto()
-            .forEach {
-                save(it)
+        ConsolePrinter.printText("push ${postSelectionType.name} started")
+        when (postSelectionType) {
+            PostSelectionType.SELECTION_UNCONFIRMED -> {
+                postDao.getAllUnconfirmed()
+                    .toDto()
+                    .forEach {
+                        save(it)
+                    }
             }
-        ConsolePrinter.printText("pushAllUnconfirmed finished")
-    }
 
-    suspend fun pushLocalConfirmedUnsaved() {
-        // Не обрабатываем ошибку, а вылетаем наверх
-        ConsolePrinter.printText("pushAllConfirmedUnsaved started")
-        postDao.getAllConfirmedUnsaved()
-            .toDto()
-            .forEach {
-                save(it)
+            PostSelectionType.SELECTION_CONFIRMED_UNSAVED -> {
+                postDao.getAllConfirmedUnsaved()
+                    .toDto()
+                    .forEach {
+                        save(it)
+                    }
             }
-        ConsolePrinter.printText("pushAllConfirmedUnsaved finished")
-    }
 
-    suspend fun pushLocalDeleted() {
-        // Не обрабатываем ошибку, а вылетаем наверх
-        ConsolePrinter.printText("pushAllDeleted started")
-        postDao.getAllDeleted()
-            .forEach { entity ->
-                removeById(
-                    entity.unconfirmed,
-                    entity.id
-                ) // Удаленный энтити преобразовался бы в пустой пост, а нам нужен непустой
+            PostSelectionType.SELECTION_DELETED -> {
+                postDao.getAllDeleted()
+                    .forEach { entity ->
+                        removeById(
+                            entity.unconfirmed,
+                            entity.id
+                        ) // Удаленный энтити преобразовался бы в пустой пост, а нам нужен непустой
+                    }
             }
-        ConsolePrinter.printText("pushAllDeleted finished")
+        }
+        ConsolePrinter.printText("push ${postSelectionType.name} finished")
     }
-
 
     override suspend fun save(post: Post) {
+        saveWithAttachment(post, null)
+    }
+
+    override suspend fun saveWithAttachment(post: Post, model: PhotoModel?) {
+        // Сохранение с аттачем означает, что новый/замененный аттач отправляется на сервер
+        // Сохранение без аттача означает, что аттач либо не изменился (отсутствует или старый), либо удален
+
         // Сначала добавляем в локальную БД в "неподтвержденном" статусе
+        // Если задана модель, то мы также сохраняем в БД unsavedUri, пока аттач не прогружен на сервер
         val newPost = (post.id == 0L)
         val unconfirmedPost = newPost || (post.unconfirmed != 0)
+        val unsavedPost = unconfirmedPost || (post.unsaved != 0)
         if (newPost) ConsolePrinter.printText("New post before inserting...")
+
+        val entity = PostEntity.fromDto(post).copy(unsavedUri = model?.uri?.toString())
         val postIdLoc = if (newPost) {
-            postDao.insertReturningId(PostEntity.fromDto(post)) // Генерируем id: это расплата за другие удобства
+            postDao.insertReturningId(entity) // Генерируем id: это расплата за другие удобства
         } else {
-            postDao.save(PostEntity.fromDto(post))
+            postDao.save(entity)
             post.id
         }
 
-        if (newPost) ConsolePrinter.printText("Added new post with id = $postIdLoc")
-        else ConsolePrinter.printText("Updated content of post with id = $postIdLoc")
+        ConsolePrinter.printText(
+            "${if (newPost) "Added new" else "Updated content of"} " +
+                    "local post $postIdLoc, unsavedUri=${model?.uri ?: "null"}, " +
+                    "attach is ${if (entity.attachment == null) "" else "NOT "}null"
+        )
+//        if (newPost) ConsolePrinter.printText("Added new post with id = $postIdLoc")
+//        else ConsolePrinter.printText("Updated content of post with id = $postIdLoc")
 
         // Будем выбрасывать исключение во вьюмодель только после некоторой обработки
         var response: Response<Post>? = null
         try {
-            // Затем отправляем запрос сохранения на сервер
-            response = PostsApi.retrofitService.save(
-                if (unconfirmedPost) post.copy(
-                    id = 0,
-                    unconfirmed = 0
-                ) else post
-            )
+            if (model == null) {
+                // Отправляем запрос сохранения на сервер - не будет нового аттача, но может пропасть старый
+                response = PostsApi.retrofitService.save(
+                    if (unconfirmedPost) post.copy(
+                        id = 0,
+                        unconfirmed = 0
+                    ) else post
+                )
+            } else {
+                // Сначала отправляем аттач на сервер
+                val media = upload(model)
+                // Затем отправляем запрос сохранения на сервер
+                response = PostsApi.retrofitService.save(
+                    if (unconfirmedPost) post.copy(
+                        id = 0,
+                        unconfirmed = 0,
+                        attachment = Attachment(url = media.id, type = AttachmentType.IMAGE)
+                    ) else post.copy(  // Если оставить просто post, то картинка не поменяется
+                        attachment = Attachment(url = media.id, type = AttachmentType.IMAGE)
+                    )
+                )
+            }
+
             ConsolePrinter.printText("HAVE GOT SAVE RESPONSE")
         } catch (e: Exception) {
             ConsolePrinter.printText("HAVE NOT GOT SAVE RESPONSE")
@@ -147,6 +179,13 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
             throw RuntimeException(response?.message() ?: "No server response")
         }
         val responsePost = response?.body() ?: throw RuntimeException("body is null")
+
+
+        ConsolePrinter.printText(
+            "${if (newPost) "Added response" else "Updated response"} " +
+                    "local post $postIdLoc, unsavedUri=${responsePost?.unsavedUri ?: "null"}, " +
+                    "attach is ${if (responsePost.attachment == null) "" else "NOT "}null"
+        )
 
         // Если вернулся ожидаемый Post,а не null, то
 
@@ -171,70 +210,7 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
         // затем отправляем все измененные и все удаляемые
         // это можно делать даже асинхронно, но мы пока оставим так
 
-    }
-
-    override suspend fun saveWithAttachment(post: Post, model: PhotoModel) {
-        // Сначала добавляем в локальную БД в "неподтвержденном" статусе
-        val newPost = (post.id == 0L)
-        val unconfirmedPost = newPost || (post.unconfirmed != 0)
-        if (newPost) ConsolePrinter.printText("New post before inserting...")
-        val postIdLoc = if (newPost) {
-            postDao.insertReturningId(PostEntity.fromDto(post)) // Генерируем id: это расплата за другие удобства
-        } else {
-            postDao.save(PostEntity.fromDto(post))
-            post.id
-        }
-
-        if (newPost) ConsolePrinter.printText("Added new post with id = $postIdLoc")
-        else ConsolePrinter.printText("Updated content of post with id = $postIdLoc")
-
-        // Будем выбрасывать исключение во вьюмодель только после некоторой обработки
-        var response: Response<Post>? = null
-        try {
-            val media = upload(model)
-            // Затем отправляем запрос сохранения на сервер
-            response = PostsApi.retrofitService.save(
-                if (unconfirmedPost) post.copy(
-                    id = 0,
-                    unconfirmed = 0,
-                    attachment = Attachment(url = media.id, type = AttachmentType.IMAGE)
-                ) else post
-            )
-            ConsolePrinter.printText("HAVE GOT SAVE RESPONSE")
-        } catch (e: Exception) {
-            ConsolePrinter.printText("HAVE NOT GOT SAVE RESPONSE")
-            // Просто выбрасываем ошибку, а пост висит в очереди на запись
-            throw RuntimeException(e.message.toString())
-        }
-        if (!(response?.isSuccessful ?: false)) {
-            throw RuntimeException(response?.message() ?: "No server response")
-        }
-        val responsePost = response?.body() ?: throw RuntimeException("body is null")
-
-        // Если вернулся ожидаемый Post,а не null, то
-
-        // Если это записался неподтвержденный пост, то отметим его подтвержденным серверным id при unconfirmed = 0
-        if (unconfirmedPost && (responsePost.id != 0L)) {
-            // Конфликт ключей даже при асинхронности нам не грозит, ведь ключ двупольный
-            // Синхронизируем ключ поста с данными сервера
-            postDao.confirmWithPersistentId(postIdLoc, responsePost.id)
-            ConsolePrinter.printText("POST CONFIRMED")
-        }
-        // Обновляем пришедший пост
-        // К этому моменту первичный ключ железно синхронизирован с сервером, можем обновлять целиком запись
-        postDao.insert(PostEntity.fromDto(responsePost).copy(unconfirmed = 0))
-
-
-        // ПОРЯДОК:
-        // Мы однократно ожидаем ответ сервера.
-        // Если ответ есть, то в лок.БД отмечаем подтверждение и правильный id, затем обновляем все поля
-        // Если ответ не пришел - тогда пост остается unconfirmed
-        // При любом следующем запросе loadPosts:
-        // отправляем серверу все unconfirmed в порядке возрастания id
-        // затем отправляем все измененные и все удаляемые
-        // это можно делать даже асинхронно, но мы пока оставим так
-
-    }
+    } // END fun saveWithAttachment
 
     private suspend fun upload(photoModel: PhotoModel): Media {
         val part = MultipartBody.Part.createFormData(

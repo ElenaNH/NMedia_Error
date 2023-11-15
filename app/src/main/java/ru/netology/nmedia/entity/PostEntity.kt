@@ -22,6 +22,7 @@ data class PostEntity(
     val unsaved: Int,       // ОТСУТСТВУЕТ В СЕРВЕРНОЙ БД
     val deleted: Int = 0,   // ОТСУТСТВУЕТ В СЕРВЕРНОЙ БД
     val hidden: Int,        // ОТСУТСТВУЕТ В СЕРВЕРНОЙ БД
+    val unsavedUri: String? = null, // ОТСУТСТВУЕТ В СЕРВЕРНОЙ БД
 ) {
     // Пока мы работаем только с теми полями, которые были описаны в задании для серверной части
     // но еще добавляем поле deleted, чтобы не гонять туда-сюда запросы к серверу
@@ -49,6 +50,7 @@ data class PostEntity(
                 unconfirmed,
                 unsaved,
                 hidden,
+                unsavedUri,
             )
         else
             // Подумать - не лучше ли выбрасывать ошибку
@@ -71,6 +73,7 @@ data class PostEntity(
                 dto.unsaved,
                 0,
                 dto.hidden,
+                dto.unsavedUri,
             ) // Мы все-таки будем следить, чтобы удаленные энтити не превращались в посты
 
     }

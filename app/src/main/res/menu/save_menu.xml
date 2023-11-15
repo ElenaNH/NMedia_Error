@@ -3,14 +3,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
         android:id="@+id/save"
-        android:background="?colorPrimary"
+        android:background="?colorOnBackground"
+        android:iconTint="@color/material_dynamic_neutral_variant60"
         android:icon="@drawable/ic_done"
-        android:iconTint="?colorAccent"
         android:title="@string/save"
         app:showAsAction="always" />
     <!-- app:showAsAction="ifRoom" -->
-    <!-- android:iconTint="@color/material_dynamic_neutral_variant60" -->
-    <!-- android:iconTint="?colorControlNormal" -->
-    <!--android:background="?colorOnBackground"-->
 </menu>
 

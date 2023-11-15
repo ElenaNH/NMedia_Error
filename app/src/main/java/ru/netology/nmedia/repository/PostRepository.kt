@@ -10,7 +10,7 @@ interface PostRepository {
     suspend fun setAllVisible()
 //    suspend fun countHidden(): Int
     suspend fun save(post: Post)
-    suspend fun saveWithAttachment(post: Post, model: PhotoModel)
+    suspend fun saveWithAttachment(post: Post, model: PhotoModel?)
     suspend fun removeById(unconfirmedStatus:Int, id: Long)
     suspend fun likeById(unconfirmedStatus:Int, id: Long, setLikedOn: Boolean)
     suspend fun shareById(unconfirmedStatus:Int, id: Long) // Пока ничего в нем не будет

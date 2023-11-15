@@ -9,16 +9,13 @@ import androidx.fragment.app.Fragment
 //import androidx.fragment.app.viewModels
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
-import ru.netology.nmedia.databinding.FragmentNewPostBinding
-import ru.netology.nmedia.util.AndroidUtils
-import ru.netology.nmedia.util.StringArg
-import ru.netology.nmedia.viewmodel.PostViewModel
 import android.view.Gravity
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.addCallback
+import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toFile
 import androidx.core.view.MenuProvider
@@ -26,16 +23,16 @@ import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import com.bumptech.glide.Glide
 import com.github.dhaval2404.imagepicker.ImagePicker
+import ru.netology.nmedia.databinding.FragmentNewPostBinding
+import ru.netology.nmedia.util.AndroidUtils
+import ru.netology.nmedia.util.StringArg
+import ru.netology.nmedia.viewmodel.PostViewModel
 import ru.netology.nmedia.R
-import ru.netology.nmedia.enumeration.AttachmentType
+import ru.netology.nmedia.dto.Post
+import ru.netology.nmedia.model.DraftModel
+import ru.netology.nmedia.model.PhotoModel
+import ru.netology.nmedia.util.BASE_URL
 import ru.netology.nmedia.util.ConsolePrinter
-import java.net.URI
-import android.net.Uri
-import androidx.core.graphics.green
-import androidx.core.graphics.toColor
-
-//import ru.netology.nmedia.databinding.FragmentFeedBinding
-val BASE_URL = "http://10.0.2.2:9999"
 
 class NewPostFragment : Fragment() {
 
@@ -54,7 +51,6 @@ class NewPostFragment : Fragment() {
             }
             val uri =
                 requireNotNull(it.data?.data)   //1-я data - это интент, а вторая - ресурс данного интента
-
             val file =
                 uri.toFile() // Если бы ранее не потребовали существования uri, то так: uri?.toFile()
 
@@ -71,19 +67,18 @@ class NewPostFragment : Fragment() {
         val callback = requireActivity().onBackPressedDispatcher.addCallback(this) {
             // Handle the back button event
 
-            // Для нового поста запоминаем черновик
-            // Даже если этот новый пост - недоделанный репост
-            //      (кстати, я не знаю, как понять, репост ли он)
-            // Но если после попытки создания поста уже заходили в редактирование другого поста,
-            // то сбрасываем черновик
-            if (viewModel.edited.value?.id ?: 0 == 0L)
-                viewModel.setDraftContent(binding.editContent.text.toString())
-            // TODO - надо ли сделать сохранение черновиковой картинки локально?
-            // Наверное, она и так сохранена в памяти за счет общей модели
-            else {
-                viewModel.setDraftContent("")
-                viewModel.clearPhoto()
+            // Для нового поста запоминаем черновик. Даже если этот новый пост - недоделанный репост
+            // Но если после попытки создания поста уже заходили в редактирование другого поста, то сбрасываем черновик
+            if (viewModel.edited.value?.id ?: 0 == 0L) {
+                viewModel.setDraft(
+                    viewModel.edited.value?.copy(content = binding.editContent.text.toString())
+                ) //viewModel.setDraftContent(binding.editContent.text.toString())
+                ConsolePrinter.printText("Draft content saved: ${viewModel.draft.value?.post?.content ?: ""}")
+            } else {
+                viewModel.setDraft(Post.getEmptyPost()) //viewModel.setDraftContent("")
+                ConsolePrinter.printText("Draft content cleared")
             }
+            viewModel.clearPhoto()  // Установим при следующем входе во фрагмент, а сейчас почистим
 
             // А выходим в предыдущий фрагмент в любом случае - хоть новый пост, хоть старый
             findNavController().navigateUp()
@@ -102,16 +97,22 @@ class NewPostFragment : Fragment() {
         binding = FragmentNewPostBinding.inflate(
             inflater,
             container,
-            false  // false означает, что система сама добавит этот view, когда посчитает нужным
+            false  // false означает, что система сама добавыит этот view, когда посчитает нужным
         )
 
         arguments?.textArg
             ?.let(binding.editContent::setText) // Задаем текст поста из передаточного элемента textArg
 
-        if (viewModel.edited.value?.attachment?.type == AttachmentType.IMAGE)
-            binding.photoContainer.isVisible = true
-        else binding.photoContainer.isGone = true
-        binding.editContent.requestFocus()
+        if (viewModel.edited.value?.id == 0L) {  // новый пост
+            // Передачу контента для примера передали выше через textArg, как раньше для двух активитей было сделано,
+            // а остальное возьмем прямо из вьюмодели
+            // (либо некрасиво захватим отрисовку через пост - надеюсь, удастся переделать более изящно)
+            viewModel.draft.value?.photo?.let { draftPhoto ->
+                viewModel.setPhoto(draftPhoto.uri, draftPhoto.file)
+            }
+        } else {  //редактирование
+            showHideAttachment(viewModel.photo.value) // Отображение картинки при наличии
+        }
 
         // Подписки этого фрагмента
         subscribe()
@@ -120,13 +121,12 @@ class NewPostFragment : Fragment() {
             object : MenuProvider {
                 override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
                     menuInflater.inflate(R.menu.save_menu, menu)
-                    //R.menu.save_menu.green   // Тоже не помогает :(
                 }
 
                 override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
                     return when (menuItem.itemId) {
                         R.id.save -> {
-                            if (binding.editContent.text.isNullOrBlank()) {
+                            if (binding.editContent.text.isNullOrBlank() && (viewModel.photo.value == null)) {
                                 // Предупреждение о непустом содержимом
                                 val warnToast = Toast.makeText(
                                     activity,
@@ -143,6 +143,8 @@ class NewPostFragment : Fragment() {
                                 viewModel.save()
                                 AndroidUtils.hideKeyboard(requireView())
 
+                                // После записи есть смысл почистить viewModel._photo
+                                viewModel.clearPhoto()
                             }
                             true
                         }
@@ -154,16 +156,7 @@ class NewPostFragment : Fragment() {
             viewLifecycleOwner,
         )
 
-        viewModel.photo.observe(viewLifecycleOwner) { photo ->
-            if (photo == null) {
-                binding.photoContainer.isGone = true
-                return@observe
-            }
-
-            binding.photoContainer.isVisible = true
-            binding.photo.setImageURI(photo.uri)
-        }
-
+        // Воплощаем все элементы текущего фрагмента
         binding.gallery.setOnClickListener {
             ImagePicker.Builder(this)  // this в нашем случае это NewPostFragment
                 .galleryOnly()
@@ -180,7 +173,6 @@ class NewPostFragment : Fragment() {
                     photoLauncher.launch(it) // чуть более длинная запись
                 }
         }
-
         binding.removeAttachment.setOnClickListener {
             viewModel.clearPhoto()
         }
@@ -207,6 +199,48 @@ class NewPostFragment : Fragment() {
         viewModel.postActionFailed.observe(viewLifecycleOwner) {
             whenPostActionFailed(binding.root, viewModel, it)
         }
+        viewModel.photo.observe(viewLifecycleOwner) { photo ->
+            // Отрисовка оттача
+            showHideAttachment(photo)
+
+        }
+
+    }
+
+    private fun showHideAttachment(photo: PhotoModel?) {
+        val post = requireNotNull(viewModel.edited.value)
+        if ((photo == null) && (post.attachment == null)) {
+            ConsolePrinter.printText("Null photo and attach => photoContainer.isGone=true")
+            binding.photoContainer.isGone = true
+            //return@observe
+        } else {
+            ConsolePrinter.printText("Not null photo or attach => photoContainer.isVisible=true")
+            binding.photoContainer.isVisible = true
+
+            if (photo == null) { // => attach is not null
+                try {
+                    binding.photo.setImageDrawable(post.transDrawable)
+                    /* // НЕ ХОЧЕТ ГРУЗИТЬ СЮДА ВООБЩЕ!
+                    // НО ДУМАЕТ ПРИ ЭТОМ, ЧТО ВСЕ ЗАГРУЗИЛ
+
+                    val imgUrl =
+                        "${BASE_URL}/media/${post.attachment?.url ?: ""}" // Если нет аттача, то мы сюда не попадем, но все же обработаем null
+                    Glide.with(binding.photo)
+                        .load(imgUrl)
+                        .error(R.drawable.ic_error_100dp)
+                        .timeout(10_000)
+                        .into(binding.photo)*/
+                } catch (e: Exception) {
+                    binding.photo.setImageResource(R.drawable.ic_loading_100dp)
+
+                }
+            } else {
+                binding.photo.setImageURI(photo.uri)
+            }
+            val point2 = 2
+
+        }
+
     }
 
     // Попробуем вынести создание binding

@@ -13,7 +13,7 @@ import ru.netology.nmedia.dto.Media
 //Build Type 'debug' contains custom BuildConfig fields, but the feature is disabled.
 import ru.netology.nmedia.dto.Post
 
-private const val BASE_URL = "${BuildConfig.BASE_URL}/api/slow/"
+private const val BASE_URL_SERVICE = "${BuildConfig.BASE_URL}/api/slow/"
 
 private val logging = HttpLoggingInterceptor().apply {
     if (BuildConfig.DEBUG) {
@@ -27,7 +27,7 @@ private val okhttp = OkHttpClient.Builder()
 
 private val retrofit = Retrofit.Builder()
     .addConverterFactory(GsonConverterFactory.create())
-    .baseUrl(BASE_URL)
+    .baseUrl(BASE_URL_SERVICE)
     .client(okhttp)
     .build()
 

@@ -1,6 +1,7 @@
 package ru.netology.nmedia.viewmodel
 
 import android.app.Application
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
@@ -19,6 +20,7 @@ import ru.netology.nmedia.R
 import ru.netology.nmedia.db.AppDb
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.enumeration.PostActionType
+import ru.netology.nmedia.model.DraftModel
 import ru.netology.nmedia.model.FeedModel
 import ru.netology.nmedia.model.FeedModelState
 import ru.netology.nmedia.model.PhotoModel
@@ -26,6 +28,10 @@ import ru.netology.nmedia.repository.*
 import ru.netology.nmedia.util.ConsolePrinter
 import ru.netology.nmedia.util.SingleLiveEvent
 import java.io.File
+
+//import java.io.IOException
+//import kotlin.concurrent.thread
+
 
 private val emptyPost = Post.getEmptyPost()
 
@@ -40,7 +46,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             .asLiveData(Dispatchers.Default)
 
     val edited = MutableLiveData(emptyPost)
-    val draft = MutableLiveData(emptyPost)  // И будем сохранять это только "in memory"
+    val draft = MutableLiveData(DraftModel(emptyPost))  // И будем сохранять это только "in memory"
 
     val newerCount: LiveData<Int> = data.switchMap {
         repository.getNewerCount(it.posts
@@ -115,6 +121,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearPhoto() {
         _photo.value = null
+        // Удаляем аттач и дравебл одновременно (пусть не отображается то, что удалили)
+        edited.value = edited.value?.copy(attachment = null, transDrawable = null)
     }
 
     fun save() {
@@ -134,10 +142,16 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 // Эта корутина будет отвечать за запись - ее не ждем
 
                 try {
-                    edited.value?.let {post ->
-                        photo.value?.let {
-                            repository.saveWithAttachment(post, it) // Если есть аттач
-                        } ?: repository.save(post)  // Если нет аттача
+                    edited.value?.let { post ->
+                        photo.value?.let {// заменен либо создан аттач, и нужно отправить его на сервер
+                            repository.saveWithAttachment(
+                                post.copy(transDrawable = null),
+                                it
+                            ) // Если есть новый аттач
+                        }
+                            ?: repository.save(
+                                post.copy(transDrawable = null)
+                            )  // Если нет нового аттача (возможен старый, его не трогаем)
 
                         _postCreated.value = Unit  // Однократное событие
 
@@ -161,7 +175,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 postDraftContent("")
 
             }
-            //}
+
         }
 
     }
@@ -221,22 +235,44 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     //-------------------------------------------------
     fun startEditing(post: Post) {
         edited.value = post
+        if (post.id == 0L) clearPhoto() // Здесь стираем картинку черновика
     }
 
     fun quitEditing() {
         edited.value = emptyPost
     }
 
-    fun setDraftContent(draftContent: String) {
-        draft.value = draft.value?.copy(content = draftContent.trim()) // Главный поток
+    fun setDraft(post: Post?) {
+        draft.value = DraftModel(
+            post?.copy(content = post.content.trim()) ?: emptyPost,
+            photo.value?.copy()  // Наверное, все можно брать из модели, но пока так оставим
+        )
     }
+//    fun setDraft(post: Post?) {
+//        draft.value = post?.copy(content = post.content.trim())
+//            ?: emptyPost
+//    }
+//    fun setDraftContent(draftContent: String) {
+//        draft.value = draft.value?.copy(content = draftContent.trim()) // Главный поток
+//    }
 
     fun postDraftContent(draftContent: String) {
-        draft.postValue(draft.value?.copy(content = draftContent.trim())) // Фоновый поток!!!
+        draft.postValue(
+            DraftModel((draft.value?.post ?: emptyPost).copy(content = draftContent.trim()))
+        ) // Фоновый поток!!!
     }
 
     fun getDraftContent(): String {
-        return draft.value?.content ?: ""
+        return draft.value?.post?.content ?: ""
     }
+
+//    fun postDraftContent(draftContent: String) {
+//        draft.postValue(draft.value?.copy(content = draftContent.trim())) // Фоновый поток!!!
+//    }
+//
+//    fun getDraftContent(): String {
+//        return draft.value?.content ?: ""
+//    }
+
 
 }

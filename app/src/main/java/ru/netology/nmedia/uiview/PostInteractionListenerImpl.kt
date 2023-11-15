@@ -70,8 +70,9 @@ class PostInteractionListenerImpl(viewModelInput: PostViewModel, fragmentInput: 
                 Bundle().apply {
                     textArg =
                         post.content.toString()  // В запускаемый фрагмент передаем данные редактируемого поста
-                        //viewModel.setPhoto() НАДО ВЫЯСНИТЬ Uri и File
+                    //viewModel.setPhoto() НАДО ВЫЯСНИТЬ Uri и File
                 }
+
             ) // Когда тот фрагмент закроется, опять окажемся здесь (по стеку)
     }
 
@@ -88,6 +89,26 @@ class PostInteractionListenerImpl(viewModelInput: PostViewModel, fragmentInput: 
                 Intent.createChooser(intent, fragmentParent.getString(R.string.chooser_share_post))
             // А здесь мы могли запустить наш intent без красоты, либо улучшенный shareIntent
             fragmentParent.startActivity(shareIntent)
+        } else if (post.attachment?.type == AttachmentType.IMAGE) {
+            // Запуск фрагмента ImageFragment
+            // Поскольку мы уже нахдимся во фрагменте, то не нужен аргумент, задающий граф навигации
+            // Но нам нужно знать, в каком мы фрагменте, чтобы задать правильный переход
+            val action_from_to =
+                when {
+                    (fragmentParent is FeedFragment) -> R.id.action_feedFragment_to_imageFragment
+                    (fragmentParent is PostFragment) -> R.id.action_postFragment_to_imageFragment
+                    else -> null
+                }
+            if (action_from_to != null)
+                fragmentParent.findNavController().navigate(
+                    action_from_to,
+                    Bundle().apply {
+                        // Передаем ключевые элементы поста
+                        putLong(ARG_POST_ID, post.id)
+                        putInt(ARG_POST_UNCONFIRMED, post.unconfirmed)
+                    }
+
+                ) // Когда тот фрагмент закроется, опять окажемся здесь (по стеку)
         }
     }
 
