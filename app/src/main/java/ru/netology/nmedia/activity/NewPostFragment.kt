@@ -225,7 +225,7 @@ class NewPostFragment : Fragment() {
                         "${BASE_URL}/media/${post.attachment?.url ?: ""}" // Если нет аттача, то мы сюда не попадем, но все же обработаем null
                     //Ниже идет работающее решение от Романа Лешина,
                     // а мое (еще ниже) работать не хочет
-                    Glide.with(binding.photo)
+                    /*Glide.with(binding.photo)
                         .load(imgUrl)
                         .error(R.drawable.ic_error_100dp)
                         .timeout(10_000)
@@ -255,14 +255,14 @@ class NewPostFragment : Fragment() {
                                     binding.photo.setImageDrawable(placeholder)
                                 }
                             }
-                        )
-                    /*// НЕ ХОЧЕТ ГРУЗИТЬ СЮДА ВООБЩЕ!
+                        )*/
+                    // НЕ ХОЧЕТ ГРУЗИТЬ СЮДА ВООБЩЕ!
                     // НО ДУМАЕТ ПРИ ЭТОМ, ЧТО ВСЕ ЗАГРУЗИЛ
                     Glide.with(binding.photo)
                         .load(imgUrl)
                         .error(R.drawable.ic_error_100dp)
                         .timeout(10_000)
-                        .into(binding.photo)*/
+                        .into(binding.photo)
                 } catch (e: Exception) {
                     binding.photo.setImageResource(R.drawable.ic_loading_100dp)
 
