@@ -114,15 +114,7 @@ class PostViewHolder(
                             }
 
                             R.id.edit -> {
-
-                                // Я знаю, что нельзя смешивать отображение с логикой
-                                // но правильный способ в моем приложении не работает
-                                // пришлось смешать
-
-                                //test
-                                onInteractionListener.onEdit(post.copy(transDrawable = binding.videoLinkPic.drawable))
-                                // Так было:
-                                //onInteractionListener.onEdit(post)
+                                onInteractionListener.onEdit(post)
                                 true
                             }
 

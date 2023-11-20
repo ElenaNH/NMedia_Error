@@ -79,12 +79,9 @@ data class PostEntity(
     }
 }
 
-//@Embeddable
 data class AttachmentEmbeddable(
     var url: String,
-    //@Column(columnDefinition = "TEXT")
     var description: String?,
-    //@Enumerated(EnumType.STRING)
     var type: String,
 ) {
     fun toDto() = Attachment(url, description, AttachmentType.valueOf(type))

@@ -49,7 +49,6 @@ data class Post(
     val unsaved: Int = 0, // Все пришедшее с сервера будет "saved" (ведь на сервере нет этого поля)
     val hidden: Int,
     val unsavedUri: String? = null,
-    val transDrawable: Drawable? = null, //test
 ) {
 
  companion object {

@@ -1,6 +1,7 @@
 package ru.netology.nmedia.activity
 
 import android.app.Activity
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -22,6 +23,8 @@ import androidx.core.view.MenuProvider
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import com.bumptech.glide.Glide
+import com.bumptech.glide.request.target.CustomTarget
+import com.bumptech.glide.request.transition.Transition
 import com.github.dhaval2404.imagepicker.ImagePicker
 import ru.netology.nmedia.databinding.FragmentNewPostBinding
 import ru.netology.nmedia.util.AndroidUtils
@@ -106,7 +109,6 @@ class NewPostFragment : Fragment() {
         if (viewModel.edited.value?.id == 0L) {  // новый пост
             // Передачу контента для примера передали выше через textArg, как раньше для двух активитей было сделано,
             // а остальное возьмем прямо из вьюмодели
-            // (либо некрасиво захватим отрисовку через пост - надеюсь, удастся переделать более изящно)
             viewModel.draft.value?.photo?.let { draftPhoto ->
                 viewModel.setPhoto(draftPhoto.uri, draftPhoto.file)
             }
@@ -219,12 +221,43 @@ class NewPostFragment : Fragment() {
 
             if (photo == null) { // => attach is not null
                 try {
-                    binding.photo.setImageDrawable(post.transDrawable)
-                    /* // НЕ ХОЧЕТ ГРУЗИТЬ СЮДА ВООБЩЕ!
-                    // НО ДУМАЕТ ПРИ ЭТОМ, ЧТО ВСЕ ЗАГРУЗИЛ
-
                     val imgUrl =
                         "${BASE_URL}/media/${post.attachment?.url ?: ""}" // Если нет аттача, то мы сюда не попадем, но все же обработаем null
+                    //Ниже идет работающее решение от Романа Лешина,
+                    // а мое (еще ниже) работать не хочет
+                    Glide.with(binding.photo)
+                        .load(imgUrl)
+                        .error(R.drawable.ic_error_100dp)
+                        .timeout(10_000)
+                        .into(
+                            object : CustomTarget<Drawable>() {
+                                override fun onResourceReady(
+                                    resource: Drawable,
+                                    transition: Transition<in Drawable>?
+                                ) {
+                                    binding.photo.setImageDrawable(resource)
+                                    val layoutParams = binding.photo.layoutParams
+                                    val width = resource.intrinsicWidth
+                                    val height = resource.intrinsicHeight
+
+                                    val displayMetrics =
+                                        binding.root.context.resources.displayMetrics
+                                    val screenWidth = displayMetrics.widthPixels
+                                    layoutParams.width = screenWidth
+
+                                    val calculatedHeight =
+                                        (screenWidth.toFloat() / width.toFloat() * height).toInt()
+                                    layoutParams.height = calculatedHeight
+                                    binding.photo.layoutParams = layoutParams
+                                }
+
+                                override fun onLoadCleared(placeholder: Drawable?) {
+                                    binding.photo.setImageDrawable(placeholder)
+                                }
+                            }
+                        )
+                    /*// НЕ ХОЧЕТ ГРУЗИТЬ СЮДА ВООБЩЕ!
+                    // НО ДУМАЕТ ПРИ ЭТОМ, ЧТО ВСЕ ЗАГРУЗИЛ
                     Glide.with(binding.photo)
                         .load(imgUrl)
                         .error(R.drawable.ic_error_100dp)

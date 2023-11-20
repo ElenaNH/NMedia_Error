@@ -121,8 +121,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearPhoto() {
         _photo.value = null
-        // Удаляем аттач и дравебл одновременно (пусть не отображается то, что удалили)
-        edited.value = edited.value?.copy(attachment = null, transDrawable = null)
+        // Удаляем аттач (пусть не отображается то, что удалили)
+        edited.value = edited.value?.copy(attachment = null)
     }
 
     fun save() {
@@ -144,14 +144,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 try {
                     edited.value?.let { post ->
                         photo.value?.let {// заменен либо создан аттач, и нужно отправить его на сервер
-                            repository.saveWithAttachment(
-                                post.copy(transDrawable = null),
-                                it
-                            ) // Если есть новый аттач
+                            repository.saveWithAttachment(post, it) // Если есть новый аттач
                         }
-                            ?: repository.save(
-                                post.copy(transDrawable = null)
-                            )  // Если нет нового аттача (возможен старый, его не трогаем)
+                            ?: repository.save(post)  // Если нет нового аттача (возможен старый, его не трогаем)
 
                         _postCreated.value = Unit  // Однократное событие
 
