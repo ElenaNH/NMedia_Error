@@ -51,21 +51,20 @@ interface PostDao {
 
     /*@Query("UPDATE PostEntity SET content = :content, videoLink = :videoLink WHERE id = :id")
     fun updateContentById(id: Long, content: String, videoLink: String) // Лучше весь пост передавать*/
-    @Query("""UPDATE PostEntity 
+    @Query(
+        """UPDATE PostEntity 
         SET content = :content, unsaved = 1 
         WHERE id = :id AND unconfirmed = :unconfirmedStatus
-        """)
+        """
+    )
     suspend fun updateContentById(unconfirmedStatus: Int, id: Long, content: String)
     // Не потребуется отдельно сбрасывать признак unsaved, поскольку
     // после удачной записи на сервер сработает insert, в котором уже будет этот признак сброшен
 
     suspend fun save(post: PostEntity) =
-        if (post.id == 0L) {val newId = insertReturningId(post)}
-        else updateContentById(
-            post.unconfirmed,
-            post.id,
-            post.content
-        ) // НУЖНО ТАКЖЕ ДОБАВЛЯТЬ ATTACHMENT
+        if (post.id == 0L) {
+            val newId = insertReturningId(post)
+        } else insert(post.copy(unsaved = 1)) //updateContentById(post.unconfirmed, post.id, post.content)
 
     // поле в БД теперь называется likes (вместо countLikes - и по аналогии с сервером)
     @Query(
@@ -86,7 +85,10 @@ interface PostDao {
         WHERE unconfirmed = :unconfirmedStatus AND id = :id 
         """
     )
-    suspend fun dislikeById(unconfirmedStatus: Int, id: Long) // раз у сервера есть dislike, то и мы себе добавим для подтвержденных с сервера постов
+    suspend fun dislikeById(
+        unconfirmedStatus: Int,
+        id: Long
+    ) // раз у сервера есть dislike, то и мы себе добавим для подтвержденных с сервера постов
 
     /*  // Пока нам не дали api на это действие, так что заменим его ничего не делающим действием
           @Query(
@@ -103,15 +105,20 @@ interface PostDao {
             WHERE id = :id AND unconfirmed = :unconfirmedStatus
             """
     )
-    suspend fun shareById(unconfirmedStatus:Int, id: Long)
+    suspend fun shareById(unconfirmedStatus: Int, id: Long)
 
 
-    @Query("""UPDATE PostEntity SET id = :persistentId, unconfirmed = 0 
-        WHERE id = :temporaryId AND unconfirmed = 1""")
+    @Query(
+        """UPDATE PostEntity SET id = :persistentId, unconfirmed = 0 
+        WHERE id = :temporaryId AND unconfirmed = 1"""
+    )
     suspend fun confirmWithPersistentId(temporaryId: Long, persistentId: Long)
 
     @Query("UPDATE PostEntity SET deleted = 1 WHERE id = :id AND unconfirmed = :unconfirmedStatus")
-    suspend fun removeById(unconfirmedStatus: Int, id: Long)   //@Query("DELETE FROM PostEntity WHERE id = :id")
+    suspend fun removeById(
+        unconfirmedStatus: Int,
+        id: Long
+    )   //@Query("DELETE FROM PostEntity WHERE id = :id")
 
 //    @Query("UPDATE PostEntity SET deleted = 0 WHERE id = :id AND unconfirmed = :unconfirmedStatus")
 //    suspend fun restoreById(unconfirmedStatus: Int, id: Long)

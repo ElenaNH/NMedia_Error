@@ -222,9 +222,9 @@ class NewPostFragment : Fragment() {
             if (photo == null) { // => attach is not null
                 try {
                     val imgUrl =
-                        "${BASE_URL}/media/${post.attachment?.url ?: ""}" // Если нет аттача, то мы сюда не попадем, но все же обработаем null
+                        "$BASE_URL/media/${post.attachment?.url ?: ""}" // Если нет аттача, то мы сюда не попадем, но все же обработаем null
                     //Ниже идет работающее решение от Романа Лешина,
-                    // а мое (еще ниже) работать не хочет
+                    // а мое еще ниже
                     /*Glide.with(binding.photo)
                         .load(imgUrl)
                         .error(R.drawable.ic_error_100dp)
@@ -256,8 +256,7 @@ class NewPostFragment : Fragment() {
                                 }
                             }
                         )*/
-                    // НЕ ХОЧЕТ ГРУЗИТЬ СЮДА ВООБЩЕ!
-                    // НО ДУМАЕТ ПРИ ЭТОМ, ЧТО ВСЕ ЗАГРУЗИЛ
+                    // Условие для загрузки: wrap_content для высоты photo
                     Glide.with(binding.photo)
                         .load(imgUrl)
                         .error(R.drawable.ic_error_100dp)
@@ -275,6 +274,7 @@ class NewPostFragment : Fragment() {
         }
 
     }
+
 
     // Попробуем вынести создание binding
     private fun makeBinding(

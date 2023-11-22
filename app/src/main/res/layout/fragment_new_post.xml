@@ -32,28 +32,6 @@
                 android:inputType="textMultiLine"
                 tools:text="@tools:sample/lorem[30909]" />
 
-            <!--<FrameLayout
-                android:id="@+id/attachContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:visibility="gone">
-
-                <ImageView
-                    android:id="@+id/videoLinkPic"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:adjustViewBounds="true"
-                    tools:srcCompat="@tools:sample/avatars[82]" />
-
-                <Button
-                    android:id="@+id/removePic"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal|bottom"
-                    android:text="@string/remove" />
-
-            </FrameLayout>-->
-
             <FrameLayout
                 android:id="@+id/photoContainer"
                 android:layout_width="match_parent"
@@ -63,7 +41,7 @@
                 <ImageView
                     android:id="@+id/photo"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:adjustViewBounds="true"
                     android:background="@color/grey_cc"
                     android:padding="@dimen/line_thickness"

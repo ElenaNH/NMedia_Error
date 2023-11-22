@@ -1,5 +1,6 @@
 package ru.netology.nmedia.repository
 
+import androidx.core.net.toFile
 import kotlinx.coroutines.flow.*
 //import kotlinx.coroutines.flow.Flow
 //import kotlinx.coroutines.flow.flow
@@ -27,6 +28,8 @@ import ru.netology.nmedia.util.ConsolePrinter
 //import java.lang.RuntimeException
 import ru.netology.nmedia.error.ApiError
 import ru.netology.nmedia.model.PhotoModel
+import java.io.File
+import android.net.Uri
 import kotlin.RuntimeException
 
 
@@ -58,7 +61,6 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
         val excludeIds = confirmedUnsavedEntities.map { it.id }
             .plus(waitedDeleteEntities.map { it.id })
             .toSet()
-        // .toList()
 
         val postEntitiesForInserting = posts.fromDto()
             .filterNot { excludeIds.contains(it.id) }
@@ -66,10 +68,9 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
                 entity.copy(hidden = 0)
             } // Если была команда на полное обновление, то ничего не скрываем, все visible
 
-        // Обновим только то, что не нужно прежде проталкивать на сервер
+        // Обновим только то, что не нужно прежде проталкивать на сервер (только новое и не измененное)
         if (postEntitiesForInserting.count() > 0)
             postDao.insert(postEntitiesForInserting)
-        //postDao.insert(posts.map { PostEntity.fromDto(it)})
 
         // Сюда дошли, значит можно вкинуть на сервер кучу подвисших новых/удаляемых постов
         // Пока отдельными частями протолкнем
@@ -116,28 +117,54 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
         saveWithAttachment(post, null)
     }
 
-    override suspend fun saveWithAttachment(post: Post, model: PhotoModel?) {
+    override suspend fun saveWithAttachment(post: Post, model1: PhotoModel?) {
         // Сохранение с аттачем означает, что новый/замененный аттач отправляется на сервер
         // Сохранение без аттача означает, что аттач либо не изменился (отсутствует или старый), либо удален
 
         // Сначала добавляем в локальную БД в "неподтвержденном" статусе
-        // Если задана модель, то мы также сохраняем в БД unsavedUri, пока аттач не прогружен на сервер
+        // Если задана модель, то флаг unsavedAttach = 1, пока аттач не прогружен на сервер
         val newPost = (post.id == 0L)
         val unconfirmedPost = newPost || (post.unconfirmed != 0)
         val unsavedPost = unconfirmedPost || (post.unsaved != 0)
         if (newPost) ConsolePrinter.printText("New post before inserting...")
 
-        val entity = PostEntity.fromDto(post).copy(unsavedUri = model?.uri?.toString())
+        //val entity = PostEntity.fromDto(post).copy(unsavedUri = model?.uri?.toString())
+        val entity = PostEntity.fromDto(post)  //unsavedAttach уже выставлен как надо
         val postIdLoc = if (newPost) {
             postDao.insertReturningId(entity) // Генерируем id: это расплата за другие удобства
         } else {
             postDao.save(entity)
             post.id
         }
+        val modelInput = model1
+        val model =
+            if ((post.attachment == null) || (post.unsavedAttach == 0)) null
+            else {
+                //Может получиться, что локальный файл уже удален, пока мы сохранялись,
+                // пока восстанавливали соединение
+                try {
+                    // Странно, что приходится вычищать этот префикс,
+                    // но иначе в файле и в uri появляются какие-то левые символы /file%3A/
+                    // Тут явно какой-то подвох
+                    // В примерах в и-нете никто ничего не вычищает, а все работает!
+                    val file =
+                        if (post.attachment.url.substring(0, 8) == "file:///")
+                            File(post.attachment.url.substring(7, post.attachment.url.length))
+                        else File(post.attachment.url)
+
+                    val uri = Uri.fromFile(file)
+                    ConsolePrinter.printText("Created PhotoModel for post.id=${post.id}")
+                    PhotoModel(uri, file)
+                } catch (e: Exception) {
+                    ConsolePrinter.printText("PhotoModel creating ERR for post.id=${post.id}")
+                    null
+                }
+            }
+        if (model == null) ConsolePrinter.printText("NO PhotoModel for post.id=${post.id}")
 
         ConsolePrinter.printText(
             "${if (newPost) "Added new" else "Updated content of"} " +
-                    "local post $postIdLoc, unsavedUri=${model?.uri ?: "null"}, " +
+                    "local post $postIdLoc, " +
                     "attach is ${if (entity.attachment == null) "" else "NOT "}null"
         )
 //        if (newPost) ConsolePrinter.printText("Added new post with id = $postIdLoc")
@@ -156,16 +183,22 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
                 )
             } else {
                 // Сначала отправляем аттач на сервер
+                ConsolePrinter.printText("TRY PhotoModel uploading")
                 val media = upload(model)
-                // Затем отправляем запрос сохранения на сервер
+                ConsolePrinter.printText("PhotoModel uploaded")
+                // Затем отправляем запрос сохранения на сервер с измененным аттачем
+                val attach = Attachment(
+                    url = media.id,
+                    description = post.attachment?.description,
+                    type = post.attachment?.type ?: AttachmentType.IMAGE
+                )
+                ConsolePrinter.printText("Created attach by PhotoModel")
                 response = PostsApi.retrofitService.save(
                     if (unconfirmedPost) post.copy(
                         id = 0,
                         unconfirmed = 0,
-                        attachment = Attachment(url = media.id, type = AttachmentType.IMAGE)
-                    ) else post.copy(  // Если оставить просто post, то картинка не поменяется
-                        attachment = Attachment(url = media.id, type = AttachmentType.IMAGE)
-                    )
+                        attachment = attach
+                    ) else post.copy(attachment = attach)
                 )
             }
 
@@ -183,7 +216,7 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
 
         ConsolePrinter.printText(
             "${if (newPost) "Added response" else "Updated response"} " +
-                    "local post $postIdLoc, unsavedUri=${responsePost?.unsavedUri ?: "null"}, " +
+                    "local post $postIdLoc, unsavedUri=${responsePost?.unsavedAttach ?: "null"}, " +
                     "attach is ${if (responsePost.attachment == null) "" else "NOT "}null"
         )
 

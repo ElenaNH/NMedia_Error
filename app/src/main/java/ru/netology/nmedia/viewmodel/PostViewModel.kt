@@ -18,7 +18,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import ru.netology.nmedia.R
 import ru.netology.nmedia.db.AppDb
+import ru.netology.nmedia.dto.Attachment
 import ru.netology.nmedia.dto.Post
+import ru.netology.nmedia.enumeration.AttachmentType
 import ru.netology.nmedia.enumeration.PostActionType
 import ru.netology.nmedia.model.DraftModel
 import ru.netology.nmedia.model.FeedModel
@@ -117,12 +119,14 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setPhoto(uri: Uri, file: File) {
         _photo.value = PhotoModel(uri, file)
+        val attach = Attachment(url = uri.toString(), description = null, AttachmentType.IMAGE)
+        edited.value = edited.value?.copy(attachment = attach, unsavedAttach = 1)
     }
 
     fun clearPhoto() {
         _photo.value = null
         // Удаляем аттач (пусть не отображается то, что удалили)
-        edited.value = edited.value?.copy(attachment = null)
+        edited.value = edited.value?.copy(attachment = null, unsavedAttach = 0)
     }
 
     fun save() {
@@ -143,11 +147,14 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
                 try {
                     edited.value?.let { post ->
-                        photo.value?.let {// заменен либо создан аттач, и нужно отправить его на сервер
+                        /*photo.value?.let {// заменен либо создан аттач, и нужно отправить его на сервер
                             repository.saveWithAttachment(post, it) // Если есть новый аттач
                         }
-                            ?: repository.save(post)  // Если нет нового аттача (возможен старый, его не трогаем)
+                            ?: repository.save(post)  // Если нет нового аттача (возможен старый, его не трогаем)*/
 
+                        // Пока что-то не так восстанавливается в фотомодели
+                        photo.value?.let {repository.saveWithAttachment(post, it)}
+                        //repository.save(post) // с аттачем или без - записано внутри поста
                         _postCreated.value = Unit  // Однократное событие
 
                         ConsolePrinter.printText("MY SAVING TRY FINISHED")
