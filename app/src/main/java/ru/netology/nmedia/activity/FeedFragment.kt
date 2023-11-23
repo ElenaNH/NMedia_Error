@@ -21,6 +21,7 @@ import ru.netology.nmedia.uiview.PostInteractionListenerImpl // Было до к
 import ru.netology.nmedia.adapter.PostsAdapter
 import ru.netology.nmedia.viewmodel.PostViewModel
 import ru.netology.nmedia.databinding.FragmentFeedBinding
+import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.enumeration.PostActionType
 import ru.netology.nmedia.util.ConsolePrinter
 
@@ -123,10 +124,14 @@ class FeedFragment : Fragment() {
             findNavController().navigate(
                 R.id.action_feedFragment_to_newPostFragment,
                 Bundle().apply {
-                    //textArg = ""  // В запускаемый фрагмент передаем пустое содержимое нового поста
                     ConsolePrinter.printText("Draft content for textArg = ${viewModel.getDraftContent()}")
+                    //Через вьюмодель
+                    viewModel.startEditing(viewModel.draft.value ?: Post.getEmptyPost())
+                    //Через аргумент
                     textArg =
                         viewModel.getDraftContent()  // В запускаемый фрагмент передаем содержимое черновика
+                    // Эта передача имеет смысл для двух разных активитей, а у нас фрагменты
+                    // так что это архаизм, и можно все передать через вьюмодель
                 }
             )
 

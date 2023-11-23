@@ -1,28 +1,17 @@
 package ru.netology.nmedia.viewmodel
 
 import android.app.Application
-import android.graphics.drawable.Drawable
 import android.net.Uri
-import android.view.ViewGroup
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.findFragment
 import androidx.lifecycle.*
-import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.switchMap
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.supervisorScope
-import ru.netology.nmedia.R
 import ru.netology.nmedia.db.AppDb
 import ru.netology.nmedia.dto.Attachment
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.enumeration.AttachmentType
 import ru.netology.nmedia.enumeration.PostActionType
-import ru.netology.nmedia.model.DraftModel
 import ru.netology.nmedia.model.FeedModel
 import ru.netology.nmedia.model.FeedModelState
 import ru.netology.nmedia.model.PhotoModel
@@ -48,7 +37,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             .asLiveData(Dispatchers.Default)
 
     val edited = MutableLiveData(emptyPost)
-    val draft = MutableLiveData(DraftModel(emptyPost))  // И будем сохранять это только "in memory"
+    val draft = MutableLiveData(emptyPost)  // И будем сохранять это только "in memory"
 
     val newerCount: LiveData<Int> = data.switchMap {
         repository.getNewerCount(it.posts
@@ -118,15 +107,18 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setPhoto(uri: Uri, file: File) {
-        _photo.value = PhotoModel(uri, file)
+        // Новый аттач добавляем в пост
         val attach = Attachment(url = uri.toString(), description = null, AttachmentType.IMAGE)
         edited.value = edited.value?.copy(attachment = attach, unsavedAttach = 1)
+        // В конце установим фотомодель, чтобы обработчик учел присвоенный выше аттач
+        _photo.value = PhotoModel(uri, file)
     }
 
     fun clearPhoto() {
-        _photo.value = null
         // Удаляем аттач (пусть не отображается то, что удалили)
         edited.value = edited.value?.copy(attachment = null, unsavedAttach = 0)
+        // В конце очистим фотомодель, чтобы обработчик учел удаленный выше аттач
+        _photo.value = null
     }
 
     fun save() {
@@ -147,14 +139,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
                 try {
                     edited.value?.let { post ->
-                        /*photo.value?.let {// заменен либо создан аттач, и нужно отправить его на сервер
-                            repository.saveWithAttachment(post, it) // Если есть новый аттач
-                        }
-                            ?: repository.save(post)  // Если нет нового аттача (возможен старый, его не трогаем)*/
-
-                        // Пока что-то не так восстанавливается в фотомодели
-                        photo.value?.let {repository.saveWithAttachment(post, it)}
-                        //repository.save(post) // с аттачем или без - записано внутри поста
+                        repository.save(post) // с аттачем или без - записано внутри поста
                         _postCreated.value = Unit  // Однократное событие
 
                         ConsolePrinter.printText("MY SAVING TRY FINISHED")
@@ -170,11 +155,12 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 // Эта корутина будет отвечать за выход из режима редактирования
 
                 _postSavingStarted.value = Unit // Однократное событие
+
                 ConsolePrinter.printText("Before quitEditing() call...")
                 quitEditing() // сбрасываем редактирование при попытке записи (заменим на emptyPost)
                 ConsolePrinter.printText("After quitEditing() call...")
                 // Черновик сбросим, т.к. у нас будет либо подтвержденный, либо неподтвержденный пост
-                postDraftContent("")
+                setDraft(emptyPost)
 
             }
 
@@ -245,36 +231,20 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setDraft(post: Post?) {
-        draft.value = DraftModel(
-            post?.copy(content = post.content.trim()) ?: emptyPost,
-            photo.value?.copy()  // Наверное, все можно брать из модели, но пока так оставим
-        )
-    }
-//    fun setDraft(post: Post?) {
-//        draft.value = post?.copy(content = post.content.trim())
-//            ?: emptyPost
-//    }
-//    fun setDraftContent(draftContent: String) {
-//        draft.value = draft.value?.copy(content = draftContent.trim()) // Главный поток
-//    }
-
-    fun postDraftContent(draftContent: String) {
-        draft.postValue(
-            DraftModel((draft.value?.post ?: emptyPost).copy(content = draftContent.trim()))
-        ) // Фоновый поток!!!
+        // Черновик только для нового поста и только если вышли без сохранения
+        if (post?.id == 0L)
+            draft.value = post?.copy(content = post.content.trim())
+                ?: emptyPost
     }
 
     fun getDraftContent(): String {
-        return draft.value?.post?.content ?: ""
+        return draft.value?.content ?: ""
     }
-
+//    fun setDraftContent(draftContent: String) {
+//        draft.value = draft.value?.copy(content = draftContent.trim()) // Главный поток
+//    }
 //    fun postDraftContent(draftContent: String) {
 //        draft.postValue(draft.value?.copy(content = draftContent.trim())) // Фоновый поток!!!
 //    }
-//
-//    fun getDraftContent(): String {
-//        return draft.value?.content ?: ""
-//    }
-
 
 }

@@ -5,15 +5,19 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
 import ru.netology.nmedia.R
 import ru.netology.nmedia.databinding.FragmentImageBinding
 import ru.netology.nmedia.databinding.FragmentPostBinding
+import ru.netology.nmedia.dto.Post
+import ru.netology.nmedia.model.photoModel
 import ru.netology.nmedia.util.ARG_POST_ID
 import ru.netology.nmedia.util.ARG_POST_UNCONFIRMED
 import ru.netology.nmedia.viewmodel.PostViewModel
+import ru.netology.nmedia.uiview.loadImage
 
 
 // TODO: Rename parameter arguments, choose names that match
@@ -87,31 +91,15 @@ class ImageFragment : Fragment() {
         val post = viewModel.data.value?.posts?.filter {
             (it.id == current_post_id) && (it.unconfirmed == current_post_unconfirmed)
         }?.first()
-        // Сначала сбросим старое изображение
-        binding.photo.setImageDrawable(null)
-        if (post != null) {
-            // Теперь загрузим новое изображение (ранее было в папке images, теперь - media
-            val BASE_URL = "http://10.0.2.2:9999"
-            val imgUrl =
-                "${BASE_URL}/media/${post.attachment?.url ?: ""}" // Если нет аттача, то мы сюда не попадем, но все же обработаем null
-            Glide.with(binding.photo)
-                .load(imgUrl)
-//                    .placeholder(R.drawable.ic_loading_100dp)
-                .error(R.drawable.ic_error_100dp)
-                .timeout(10_000)
-                .into(binding.photo)
 
-        }
+        loadImage(post, binding.photo)
 
         binding.back.setOnClickListener {
             // выходим в предыдущий фрагмент
             findNavController().navigateUp()
         }
 
-
-
         return binding.root
-
     }
 
 }

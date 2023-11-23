@@ -27,7 +27,7 @@ import ru.netology.nmedia.util.ConsolePrinter
 //import kotlin.Exception
 //import java.lang.RuntimeException
 import ru.netology.nmedia.error.ApiError
-import ru.netology.nmedia.model.PhotoModel
+import ru.netology.nmedia.model.*
 import java.io.File
 import android.net.Uri
 import kotlin.RuntimeException
@@ -114,6 +114,9 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
     }
 
     override suspend fun save(post: Post) {
+        // Можно я удалю saveWithAttachment и перенесу все в save?
+        // Меня остановило то, что у всех же есть такая функция, значит, и мне нужна?
+
         saveWithAttachment(post, null)
     }
 
@@ -125,10 +128,9 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
         // Если задана модель, то флаг unsavedAttach = 1, пока аттач не прогружен на сервер
         val newPost = (post.id == 0L)
         val unconfirmedPost = newPost || (post.unconfirmed != 0)
-        val unsavedPost = unconfirmedPost || (post.unsaved != 0)
+        //val unsavedPost = unconfirmedPost || (post.unsaved != 0)
         if (newPost) ConsolePrinter.printText("New post before inserting...")
 
-        //val entity = PostEntity.fromDto(post).copy(unsavedUri = model?.uri?.toString())
         val entity = PostEntity.fromDto(post)  //unsavedAttach уже выставлен как надо
         val postIdLoc = if (newPost) {
             postDao.insertReturningId(entity) // Генерируем id: это расплата за другие удобства
@@ -136,30 +138,9 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
             postDao.save(entity)
             post.id
         }
-        val modelInput = model1
         val model =
             if ((post.attachment == null) || (post.unsavedAttach == 0)) null
-            else {
-                //Может получиться, что локальный файл уже удален, пока мы сохранялись,
-                // пока восстанавливали соединение
-                try {
-                    // Странно, что приходится вычищать этот префикс,
-                    // но иначе в файле и в uri появляются какие-то левые символы /file%3A/
-                    // Тут явно какой-то подвох
-                    // В примерах в и-нете никто ничего не вычищает, а все работает!
-                    val file =
-                        if (post.attachment.url.substring(0, 8) == "file:///")
-                            File(post.attachment.url.substring(7, post.attachment.url.length))
-                        else File(post.attachment.url)
-
-                    val uri = Uri.fromFile(file)
-                    ConsolePrinter.printText("Created PhotoModel for post.id=${post.id}")
-                    PhotoModel(uri, file)
-                } catch (e: Exception) {
-                    ConsolePrinter.printText("PhotoModel creating ERR for post.id=${post.id}")
-                    null
-                }
-            }
+            else photoModel(post.attachment.url)
         if (model == null) ConsolePrinter.printText("NO PhotoModel for post.id=${post.id}")
 
         ConsolePrinter.printText(
@@ -167,18 +148,19 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
                     "local post $postIdLoc, " +
                     "attach is ${if (entity.attachment == null) "" else "NOT "}null"
         )
-//        if (newPost) ConsolePrinter.printText("Added new post with id = $postIdLoc")
-//        else ConsolePrinter.printText("Updated content of post with id = $postIdLoc")
 
         // Будем выбрасывать исключение во вьюмодель только после некоторой обработки
         var response: Response<Post>? = null
         try {
             if (model == null) {
+                // при ошибке фотомодели почистим аттач
+                val attach = if (post.unsavedAttach == 1) null else post.attachment
                 // Отправляем запрос сохранения на сервер - не будет нового аттача, но может пропасть старый
                 response = PostsApi.retrofitService.save(
                     if (unconfirmedPost) post.copy(
                         id = 0,
-                        unconfirmed = 0
+                        unconfirmed = 0,
+                        attachment = attach  // Почищенный либо не измененный аттач
                     ) else post
                 )
             } else {

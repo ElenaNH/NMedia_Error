@@ -17,7 +17,9 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import ru.netology.nmedia.enumeration.AttachmentType
 import ru.netology.nmedia.util.BASE_URL
 import androidx.fragment.app.activityViewModels
+import ru.netology.nmedia.model.photoModel
 import ru.netology.nmedia.viewmodel.PostViewModel
+import ru.netology.nmedia.uiview.loadImage
 
 interface OnInteractionListener {
     fun onLike(post: Post) {}
@@ -53,9 +55,6 @@ class PostViewHolder(
 ) : RecyclerView.ViewHolder(binding.root) {
     fun bind(post: Post) {
         binding.apply {
-            if (post.id == 8L) {
-                val myPoint = 1
-            }
             messageAuthor.text = post.author
             messagePublished.text = post.published
             messageContent.text = post.content
@@ -63,15 +62,25 @@ class PostViewHolder(
             if ((post.attachment != null) and (post.attachment?.type == AttachmentType.IMAGE)) {
                 // Сначала сбросим старое изображение
                 videoLinkPic.setImageDrawable(null)
-                // Теперь загрузим новое изображение (ранее было в папке images, теперь - media
-                val imgUrl =
-                    "${BASE_URL}/media/${post.attachment?.url ?: ""}" // Если нет аттача, то мы сюда не попадем, но все же обработаем null
-                Glide.with(binding.videoLinkPic)
-                    .load(imgUrl)
-//                    .placeholder(R.drawable.ic_loading_100dp)
-                    .error(R.drawable.ic_error_100dp)
-                    .timeout(10_000)
-                    .into(binding.videoLinkPic)
+                loadImage(post, videoLinkPic)
+                /*if (post.unsavedAttach == 1) {
+                    // Если изображение не сохранено на сервере, то загрузим  локальное
+                    try {
+                        videoLinkPic.setImageURI(photoModel(post.attachment?.url ?: "")?.uri)
+                    } catch (e: Exception) {
+                        videoLinkPic.setImageResource(R.drawable.ic_error_100dp)
+                    }
+                } else {
+                    // Сохраненное изображение загрузим с сервера (ранее было в папке images, теперь - media
+                    val imgUrl =
+                        "${BASE_URL}/media/${post.attachment?.url ?: ""}" // Если нет аттача, то мы сюда не попадем, но все же обработаем null
+                    Glide.with(binding.videoLinkPic)
+                        .load(imgUrl)
+//                      .placeholder(R.drawable.ic_loading_100dp)
+                        .error(R.drawable.ic_error_100dp)
+                        .timeout(10_000)
+                        .into(binding.videoLinkPic)
+                }*/
             } else
                 if ((post.videoLink ?: "").trim() == "") videoLinkPic.setImageDrawable(null)
                 else videoLinkPic.setImageResource(R.mipmap.ic_banner_foreground)

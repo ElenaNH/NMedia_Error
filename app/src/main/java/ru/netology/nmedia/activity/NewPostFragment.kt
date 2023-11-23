@@ -32,8 +32,9 @@ import ru.netology.nmedia.util.StringArg
 import ru.netology.nmedia.viewmodel.PostViewModel
 import ru.netology.nmedia.R
 import ru.netology.nmedia.dto.Post
-import ru.netology.nmedia.model.DraftModel
 import ru.netology.nmedia.model.PhotoModel
+import ru.netology.nmedia.model.photoModel
+import ru.netology.nmedia.uiview.loadImage
 import ru.netology.nmedia.util.BASE_URL
 import ru.netology.nmedia.util.ConsolePrinter
 
@@ -72,16 +73,18 @@ class NewPostFragment : Fragment() {
 
             // Для нового поста запоминаем черновик. Даже если этот новый пост - недоделанный репост
             // Но если после попытки создания поста уже заходили в редактирование другого поста, то сбрасываем черновик
-            if (viewModel.edited.value?.id ?: 0 == 0L) {
+            if (viewModel.edited.value?.id == 0L) {
                 viewModel.setDraft(
                     viewModel.edited.value?.copy(content = binding.editContent.text.toString())
-                ) //viewModel.setDraftContent(binding.editContent.text.toString())
-                ConsolePrinter.printText("Draft content saved: ${viewModel.draft.value?.post?.content ?: ""}")
+                )
+                ConsolePrinter.printText("Draft content saved: ${viewModel.draft.value?.content ?: ""}")
             } else {
-                viewModel.setDraft(Post.getEmptyPost()) //viewModel.setDraftContent("")
+                viewModel.setDraft(Post.getEmptyPost())
                 ConsolePrinter.printText("Draft content cleared")
             }
-            viewModel.clearPhoto()  // Установим при следующем входе во фрагмент, а сейчас почистим
+            // После установки черновика есть смысл почистить нашу фотомодель
+            viewModel.clearPhoto()  // Установим при следующем входе во фрагмент, если надо
+            binding.editContent.setText("") // Когда контент передавался через аргумент, это не требовало чистки
 
             // А выходим в предыдущий фрагмент в любом случае - хоть новый пост, хоть старый
             findNavController().navigateUp()
@@ -103,18 +106,43 @@ class NewPostFragment : Fragment() {
             false  // false означает, что система сама добавыит этот view, когда посчитает нужным
         )
 
-        arguments?.textArg
-            ?.let(binding.editContent::setText) // Задаем текст поста из передаточного элемента textArg
+        // Передачу контента для примера можно организовать через textArg (для двух активитей было сделано)
+        //arguments?.textArg
+        //    ?.let(binding.editContent::setText) // Задаем текст поста из передаточного элемента textArg
 
-        if (viewModel.edited.value?.id == 0L) {  // новый пост
-            // Передачу контента для примера передали выше через textArg, как раньше для двух активитей было сделано,
-            // а остальное возьмем прямо из вьюмодели
-            viewModel.draft.value?.photo?.let { draftPhoto ->
-                viewModel.setPhoto(draftPhoto.uri, draftPhoto.file)
-            }
-        } else {  //редактирование
-            showHideAttachment(viewModel.photo.value) // Отображение картинки при наличии
+        if (viewModel.edited.value?.id == 0L) {  // новый пост, черновик
+            // Сейчас возьмем прямо из вьюмодели
+            viewModel.edited.value = viewModel.draft.value
         }
+        // Такую вставку можно делать только после применения черновика
+        binding.editContent.setText(viewModel.edited.value?.content ?: "")
+
+        // Несохраненный uri проверяем на наличие в локальном расположении
+        // Если файл уже удален, выведем ошибку и удалим аттач (не трогая фотомодель)
+        if (viewModel.edited.value?.unsavedAttach == 1)
+            viewModel.edited.value?.attachment?.let {
+                val model = photoModel(it.url)
+                if (model == null) {
+                    // Предупреждение об удаленном из локального расположения аттаче
+                    val warnToast = Toast.makeText(
+                        activity,
+                        getString(R.string.error_attaching),
+                        Toast.LENGTH_SHORT
+                    )
+                    warnToast.setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+                    warnToast.show()
+
+                    // Чистка не сохраненного на сервер аттача
+                    viewModel.edited.value =
+                        viewModel.edited.value?.copy(attachment = null, unsavedAttach = 0)
+                }
+            }
+
+        // ТЕКУЩИЙ ПОСТ/ЧЕРНОВИК ТЕПЕРЬ ГОТОВ ОТОБРАЗИТЬСЯ
+
+        // Отображение картинки при наличии
+        showHideAttachment()
+
 
         // Подписки этого фрагмента
         subscribe()
@@ -203,14 +231,17 @@ class NewPostFragment : Fragment() {
         }
         viewModel.photo.observe(viewLifecycleOwner) { photo ->
             // Отрисовка оттача
-            showHideAttachment(photo)
+            showHideAttachment()
 
         }
 
     }
 
-    private fun showHideAttachment(photo: PhotoModel?) {
+    private fun showHideAttachment() {
         val post = requireNotNull(viewModel.edited.value)
+        //photo: PhotoModel?
+        val photo = viewModel.photo.value
+
         if ((photo == null) && (post.attachment == null)) {
             ConsolePrinter.printText("Null photo and attach => photoContainer.isGone=true")
             binding.photoContainer.isGone = true
@@ -220,60 +251,26 @@ class NewPostFragment : Fragment() {
             binding.photoContainer.isVisible = true
 
             if (photo == null) { // => attach is not null
-                try {
-                    val imgUrl =
-                        "$BASE_URL/media/${post.attachment?.url ?: ""}" // Если нет аттача, то мы сюда не попадем, но все же обработаем null
-                    //Ниже идет работающее решение от Романа Лешина,
-                    // а мое еще ниже
-                    /*Glide.with(binding.photo)
-                        .load(imgUrl)
-                        .error(R.drawable.ic_error_100dp)
-                        .timeout(10_000)
-                        .into(
-                            object : CustomTarget<Drawable>() {
-                                override fun onResourceReady(
-                                    resource: Drawable,
-                                    transition: Transition<in Drawable>?
-                                ) {
-                                    binding.photo.setImageDrawable(resource)
-                                    val layoutParams = binding.photo.layoutParams
-                                    val width = resource.intrinsicWidth
-                                    val height = resource.intrinsicHeight
-
-                                    val displayMetrics =
-                                        binding.root.context.resources.displayMetrics
-                                    val screenWidth = displayMetrics.widthPixels
-                                    layoutParams.width = screenWidth
-
-                                    val calculatedHeight =
-                                        (screenWidth.toFloat() / width.toFloat() * height).toInt()
-                                    layoutParams.height = calculatedHeight
-                                    binding.photo.layoutParams = layoutParams
-                                }
-
-                                override fun onLoadCleared(placeholder: Drawable?) {
-                                    binding.photo.setImageDrawable(placeholder)
-                                }
-                            }
-                        )*/
-                    // Условие для загрузки: wrap_content для высоты photo
-                    Glide.with(binding.photo)
-                        .load(imgUrl)
-                        .error(R.drawable.ic_error_100dp)
-                        .timeout(10_000)
-                        .into(binding.photo)
-                } catch (e: Exception) {
-                    binding.photo.setImageResource(R.drawable.ic_loading_100dp)
-
-                }
+                loadImage(post, binding.photo)
             } else {
                 binding.photo.setImageURI(photo.uri)
             }
             val point2 = 2
-
         }
-
     }
+
+    /*    private fun showHideAttachment() {
+            val post = requireNotNull(viewModel.edited.value)
+            // Сделаем загрузку картинки
+            loadImage(post, binding.photo) //ЧЕРЕЗ ЭТУ Ф-ЦИЮ НЕ ПРОГРУЖАЕТСЯ В НОВЫЙ ПОСТ
+            // Настроим отображение группы
+            if ((viewModel.photo.value == null) && (post.attachment == null)) {
+                binding.photoContainer.isGone = true
+            } else {
+                binding.photoContainer.isVisible = true
+            }
+
+        }*/
 
 
     // Попробуем вынести создание binding
