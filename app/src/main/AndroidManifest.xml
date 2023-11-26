@@ -9,8 +9,10 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:name=".App"
         android:theme="@style/Theme.NMedia"
         android:usesCleartextTraffic="${usesCleartextTraffic}">
+        <!--android:name=".App" - это регистрация написанного нами класса App типа Application-->
         <activity
             android:name=".activity.AppActivity"
             android:exported="true">

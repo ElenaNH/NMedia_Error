@@ -49,6 +49,7 @@ data class Post(
     val unsaved: Int = 0, // Все пришедшее с сервера будет "saved" (ведь на сервере нет этого поля)
     val hidden: Int,
     val unsavedAttach: Int = 0,
+    val ownedByMe: Boolean = false, // Не будет сохраняться в локальной БД
 ) {
 
  companion object {

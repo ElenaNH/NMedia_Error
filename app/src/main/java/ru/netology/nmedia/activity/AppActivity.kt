@@ -2,8 +2,13 @@ package ru.netology.nmedia.activity
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.MenuProvider
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.findNavController
 import com.google.android.gms.common.ConnectionResult
@@ -11,6 +16,9 @@ import com.google.android.gms.common.GoogleApiAvailability
 import com.google.firebase.messaging.FirebaseMessaging
 import ru.netology.nmedia.R
 import ru.netology.nmedia.activity.NewPostFragment.Companion.textArg
+import ru.netology.nmedia.auth.AppAuth
+import ru.netology.nmedia.dto.Token
+import ru.netology.nmedia.viewmodel.AuthViewModel
 import ru.netology.nmedia.viewmodel.PostViewModel
 
 class AppActivity : AppCompatActivity(R.layout.activity_app) {
@@ -38,6 +46,43 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
             )
         }
         checkGoogleApiAvailability()
+
+        val viewModel by viewModels<AuthViewModel>()
+
+        var oldMenuProvider: MenuProvider? = null
+        viewModel.data.observe(this) {
+            oldMenuProvider?.let(::removeMenuProvider) // Удаляем старые меню, если они были
+
+            addMenuProvider(object : MenuProvider {
+                override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+                    menuInflater.inflate(R.menu.menu_auth, menu)
+                    val authorized = viewModel.isAuthorized
+                    menu.setGroupVisible(R.id.authorized, authorized)
+                    menu.setGroupVisible(R.id.unauthorized, !authorized)
+                }
+
+                override fun onMenuItemSelected(menuItem: MenuItem): Boolean =
+                    when (menuItem.itemId) {
+                        R.id.auth, R.id.register -> {
+                            // TODO Fix in HomeWork
+                            AppAuth.getInstance().setToken(Token(5L, "x-token")) // TODO заменить реальными данными
+                            true
+                        }
+
+                        R.id.logout -> {
+                            AppAuth.getInstance().clearAuth()
+                            true
+                        }
+
+                        else -> {
+                            false
+                        }
+                    }
+
+            }.apply {
+                    oldMenuProvider = this
+            }, this)
+        }
     }
 
     private fun checkGoogleApiAvailability() {
