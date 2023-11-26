@@ -1,8 +1,8 @@
 package ru.netology.nmedia.dto
 
-import android.graphics.drawable.Drawable
 import ru.netology.nmedia.enumeration.AttachmentType
-import ru.netology.nmedia.util.currentAuthor
+import android.graphics.drawable.Drawable
+import ru.netology.nmedia.util.currentUser
 
 fun Long.statisticsToString(): String {
     val stat = this
@@ -35,10 +35,11 @@ data class Attachment(
 * Правильно было использовать PostEntity, который конвертировать далее через toDto*/
 data class Post(
     val id: Long,
+    val authorId: Long,
     val author: String,
     val authorAvatar: String,
     val content: String,
-    val videoLink: String? = null,
+    val videoLink: String? = null, // Не будет сохраняться ни локально, ни на сервер
     val published: String,  // val date: Int = (System.currentTimeMillis() / 86400000).toInt()
     val likedByMe: Boolean = false,
     val likes: Int,
@@ -49,15 +50,16 @@ data class Post(
     val unsaved: Int = 0, // Все пришедшее с сервера будет "saved" (ведь на сервере нет этого поля)
     val hidden: Int,
     val unsavedAttach: Int = 0,
-    val ownedByMe: Boolean = false, // Не будет сохраняться в локальной БД
+    val ownedByMe: Boolean = false, // Не будет сохраняться ни локально, ни на сервер
 ) {
 
  companion object {
         fun getEmptyPost(): Post {
             return Post(
                 id = 0,
-                author = currentAuthor(),
-                authorAvatar = "",
+                authorId = currentUser().id, //временно
+                author = currentUser().name, //временно
+                authorAvatar = currentUser().avatar, //временно
                 content = "",
                 published = "",
                 likedByMe = false,

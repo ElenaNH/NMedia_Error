@@ -9,6 +9,7 @@ import ru.netology.nmedia.enumeration.AttachmentType
 @Entity(primaryKeys = ["unconfirmed","id"])
 data class PostEntity(
     val id: Long,
+    val authorId: Long,
     val author: String,
     val authorAvatar: String,
     val content: String,
@@ -38,21 +39,22 @@ data class PostEntity(
 
         return if (deleted == 0)
             Post(
-                id,
-                author,
-                authorAvatar,
-                content,
-                match?.value,
-                published,
-                likedByMe,
-                likes,
-                0,
-                0,
-                attachment?.toDto(),
-                unconfirmed,
-                unsaved,
-                hidden,
-                unsavedAttach,
+                id = id,
+                authorId = authorId,
+                author = author,
+                authorAvatar = authorAvatar,
+                content = content,
+                videoLink = match?.value,
+                published = published,
+                likedByMe = likedByMe,
+                likes = likes,
+                countShare = 0,
+                countViews = 0,
+                attachment = attachment?.toDto(),
+                unconfirmed = unconfirmed,
+                unsaved = unsaved,
+                hidden = hidden,
+                unsavedAttach = unsavedAttach,
             )
         else
             // Подумать - не лучше ли выбрасывать ошибку
@@ -63,19 +65,20 @@ data class PostEntity(
     companion object {
         fun fromDto(dto: Post) =
             PostEntity(
-                dto.id,
-                dto.author,
-                dto.authorAvatar,
-                dto.content,
-                dto.published,
-                dto.likedByMe,
-                dto.likes,
-                AttachmentEmbeddable.fromDto(dto.attachment),
-                dto.unconfirmed,
-                dto.unsaved,
-                0,
-                dto.hidden,
-                dto.unsavedAttach,
+                id = dto.id,
+                authorId = dto.authorId,
+                author = dto.author,
+                authorAvatar = dto.authorAvatar,
+                content = dto.content,
+                published = dto.published,
+                likedByMe = dto.likedByMe,
+                likes = dto.likes,
+                attachment = AttachmentEmbeddable.fromDto(dto.attachment),
+                unconfirmed = dto.unconfirmed,
+                unsaved = dto.unsaved,
+                deleted = 0,
+                hidden = dto.hidden,
+                unsavedAttach = dto.unsavedAttach,
             ) // Мы все-таки будем следить, чтобы удаленные энтити не превращались в посты
 
     }

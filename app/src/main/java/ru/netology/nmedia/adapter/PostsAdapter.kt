@@ -12,6 +12,7 @@ import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.dto.statisticsToString   // при этом dto.Post импортируется через PostViewModel и связанный с ней Repository
 import com.bumptech.glide.Glide
 import androidx.core.graphics.drawable.toBitmap
+import androidx.core.view.isVisible
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 //import com.squareup.picasso.Picasso
 import ru.netology.nmedia.enumeration.AttachmentType
@@ -61,26 +62,8 @@ class PostViewHolder(
             // Наличие прикрепленной картинки первично по отношению к наличию ссылки => отображаем аттач, если есть
             if ((post.attachment != null) and (post.attachment?.type == AttachmentType.IMAGE)) {
                 // Сначала сбросим старое изображение
-                videoLinkPic.setImageDrawable(null)
+//                videoLinkPic.setImageDrawable(null)  // перенесли в loadImage
                 loadImage(post, videoLinkPic)
-                /*if (post.unsavedAttach == 1) {
-                    // Если изображение не сохранено на сервере, то загрузим  локальное
-                    try {
-                        videoLinkPic.setImageURI(photoModel(post.attachment?.url ?: "")?.uri)
-                    } catch (e: Exception) {
-                        videoLinkPic.setImageResource(R.drawable.ic_error_100dp)
-                    }
-                } else {
-                    // Сохраненное изображение загрузим с сервера (ранее было в папке images, теперь - media
-                    val imgUrl =
-                        "${BASE_URL}/media/${post.attachment?.url ?: ""}" // Если нет аттача, то мы сюда не попадем, но все же обработаем null
-                    Glide.with(binding.videoLinkPic)
-                        .load(imgUrl)
-//                      .placeholder(R.drawable.ic_loading_100dp)
-                        .error(R.drawable.ic_error_100dp)
-                        .timeout(10_000)
-                        .into(binding.videoLinkPic)
-                }*/
             } else
                 if ((post.videoLink ?: "").trim() == "") videoLinkPic.setImageDrawable(null)
                 else videoLinkPic.setImageResource(R.mipmap.ic_banner_foreground)
@@ -112,6 +95,9 @@ class PostViewHolder(
                 onInteractionListener.onViewSingle(post)
             }
 
+            ibtnMenuMoreActions.isVisible = post.ownedByMe
+            // Пока выбор меню обработаем в любом случае, а не только для ownedByMe
+            // Может, позже вставим условие if (post.ownedByMe)
             ibtnMenuMoreActions.setOnClickListener {
                 PopupMenu(it.context, it).apply {
                     inflate(R.menu.options_post)
