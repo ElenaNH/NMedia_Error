@@ -50,5 +50,12 @@
     <string name="register">Register</string>
     <string name="logout">Log out</string>
 
+    <!-- Login, Registration -->
+    <string name="prompt_server">Server</string>
+    <string name="prompt_port">Port</string>
+    <string name="prompt_login">Login</string>
+    <string name="prompt_password">Password</string>
+    <string name="action_sign_in">Sign in</string>
+
 
 </resources>

@@ -120,6 +120,14 @@ class FeedFragment : Fragment() {
         // Обработчики кликов
 
         binding.fab.setOnClickListener {
+
+            // ЗАПУСК ЛОГИНА???
+            findNavController().navigate(
+                R.id.action_feedFragment_to_loginFragment
+            )
+
+
+
             // Запуск фрагмента NewPostFragment
             findNavController().navigate(
                 R.id.action_feedFragment_to_newPostFragment,

@@ -68,5 +68,10 @@ fun loadImage(post: Post?, imageView: ImageView) {
     )*/
 
 
+//      Либо Picasso, либо Glide - но не оба вместе в одном проекте
+//            Picasso.get()
+//                .load(url)
+//                .error(R.drawable.ic_error_100dp)
+//                .into(binding.image);
 
 

@@ -45,5 +45,12 @@
     <string name="register">Регистрация</string>
     <string name="logout">Выход</string>
 
+    <!-- Login, Registration -->
+    <string name="prompt_server">Сервер</string>
+    <string name="prompt_port">Порт</string>
+    <string name="prompt_login">Логин</string>
+    <string name="prompt_password">Пароль</string>
+    <string name="action_sign_in">Войти</string>
+
 
 </resources>

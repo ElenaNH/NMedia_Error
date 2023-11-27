@@ -8,8 +8,8 @@ import ru.netology.nmedia.dto.Token
 
 class AuthViewModel: ViewModel() {
     val data: LiveData<Token?> = AppAuth.getInstance().data
-        .asLiveData()
+        .asLiveData()    // Берем StateFlow и преобразуем его к лайвдате
 
     val isAuthorized: Boolean
-        get() = AppAuth.getInstance().data.value != null
+        get() = AppAuth.getInstance().data.value != null    // Берем StateFlow и проверяем
 }

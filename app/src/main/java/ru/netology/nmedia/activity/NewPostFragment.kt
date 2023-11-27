@@ -35,7 +35,6 @@ import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.model.PhotoModel
 import ru.netology.nmedia.model.photoModel
 import ru.netology.nmedia.uiview.loadImage
-import ru.netology.nmedia.util.BASE_URL
 import ru.netology.nmedia.util.ConsolePrinter
 
 class NewPostFragment : Fragment() {
