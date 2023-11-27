@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import retrofit2.Response
 import ru.netology.nmedia.api.PostsApi
+import ru.netology.nmedia.auth.AppAuth
 import ru.netology.nmedia.auth.LoginInfo
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.dto.Token
@@ -14,13 +15,17 @@ import ru.netology.nmedia.util.ConsolePrinter
 
 class LoginViewModel : ViewModel() {
 
+    // Статус будем использовать для автоматического возврата в предыдущий фрагмент
+    val isAuthorized: Boolean
+        get() = AppAuth.getInstance().data.value != null    // Берем StateFlow и проверяем
+
     private val _loginInfo = MutableLiveData(LoginInfo())
     val loginInfo: LiveData<LoginInfo>
         get() = _loginInfo
 
     fun doLogin(): Boolean {
 
-        if (!completed()) return false
+        if (!completed()) return false // Хорошо бы возвращать SingleLiveEvent - текст предупреждения
 
         // Отправить запрос авторизации на сервер
         viewModelScope.launch {
@@ -30,9 +35,8 @@ class LoginViewModel : ViewModel() {
                 ConsolePrinter.printText("CATCH OF UPDATE USER - ${e.message.toString()}")
             }
 
-
         } // end of launch
-        return true  //TODO - вернуть реальный результат
+        return isAuthorized  // вернуть реальный результат
     }
 
     fun resetLoginInfo(newLoginInfo: LoginInfo) {
@@ -62,7 +66,8 @@ class LoginViewModel : ViewModel() {
         }
         val responseToken = response?.body() ?: throw RuntimeException("body is null (=no token)")
 
-        // Как-то надо прогрузить токен в AppAuth???
+        // Надо прогрузить токен в AppAuth
+        AppAuth.getInstance().setToken(responseToken)
 
         return true // Если сюда добрались, то все сделано
     }

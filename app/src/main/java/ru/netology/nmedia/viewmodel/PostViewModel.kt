@@ -43,6 +43,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
 
             .asLiveData(Dispatchers.Default)
+    // Раз уж мы все равно используем AppAuth для преобразования данных, то и статус не помешает тоже
+    val isAuthorized: Boolean
+        get() = AppAuth.getInstance().data.value != null    // Берем StateFlow и проверяем
 
     val edited = MutableLiveData(emptyPost)
     val draft = MutableLiveData(emptyPost)  // И будем сохранять это только "in memory"

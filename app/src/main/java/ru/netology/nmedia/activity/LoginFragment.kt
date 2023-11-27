@@ -4,8 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-//import androidx.lifecycle.ViewModelProvider  // Автоматическое
-//import androidx.activity.viewModels  // Автоматическое
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import ru.netology.nmedia.auth.LoginInfo
@@ -42,9 +40,6 @@ class LoginFragment : Fragment() {
     }
 
     private fun subscribe() {
-//        viewModel.infoEnough.observe(viewLifecycleOwner) { infoEnough ->
-//            binding.signIn.isEnabled = infoEnough
-//        }
 
         viewModel.loginInfo.observe(viewLifecycleOwner) {
             if (viewModel.completed()) {
@@ -58,29 +53,5 @@ class LoginFragment : Fragment() {
         }
 
     }
-
-
-//    // Создано автоматически
-//    companion object {
-//        fun newInstance() = LoginFragment()
-//    }
-//
-//    // Создано автоматически
-//    private lateinit var viewModel: LoginViewModel
-//
-//// Создано автоматически
-//override fun onCreateView(
-//    inflater: LayoutInflater, container: ViewGroup?,
-//    savedInstanceState: Bundle?
-//): View? {
-//
-//    return inflater.inflate(R.layout.fragment_login, container, false)
-//}
-//    // Создано автоматически
-//    override fun onActivityCreated(savedInstanceState: Bundle?) {
-//        super.onActivityCreated(savedInstanceState)
-//        viewModel = ViewModelProvider(this).get(LoginViewModel::class.java)
-//        // TODO: Use the ViewModel
-//    }
 
 }

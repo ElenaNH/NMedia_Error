@@ -121,28 +121,27 @@ class FeedFragment : Fragment() {
 
         binding.fab.setOnClickListener {
 
-            // ЗАПУСК ЛОГИНА???
-            findNavController().navigate(
-                R.id.action_feedFragment_to_loginFragment
-            )
-
-
-
-            // Запуск фрагмента NewPostFragment
-            findNavController().navigate(
-                R.id.action_feedFragment_to_newPostFragment,
-                Bundle().apply {
-                    ConsolePrinter.printText("Draft content for textArg = ${viewModel.getDraftContent()}")
-                    //Через вьюмодель
-                    viewModel.startEditing(viewModel.draft.value ?: Post.getEmptyPost())
-                    //Через аргумент
-                    textArg =
-                        viewModel.getDraftContent()  // В запускаемый фрагмент передаем содержимое черновика
-                    // Эта передача имеет смысл для двух разных активитей, а у нас фрагменты
-                    // так что это архаизм, и можно все передать через вьюмодель
-                }
-            )
-
+            if (viewModel.isAuthorized) {
+                // Запуск фрагмента NewPostFragment
+                findNavController().navigate(
+                    R.id.action_feedFragment_to_newPostFragment,
+                    Bundle().apply {
+                        ConsolePrinter.printText("Draft content for textArg = ${viewModel.getDraftContent()}")
+                        //Через вьюмодель
+                        viewModel.startEditing(viewModel.draft.value ?: Post.getEmptyPost())
+                        //Через аргумент
+                        textArg =
+                            viewModel.getDraftContent()  // В запускаемый фрагмент передаем содержимое черновика
+                        // Эта передача имеет смысл для двух разных активитей, а у нас фрагменты
+                        // так что это архаизм, и можно все передать через вьюмодель
+                    }
+                )
+            } else {
+                // ЗАПУСК ЛОГИНА
+                findNavController().navigate(
+                    R.id.action_feedFragment_to_loginFragment
+                )
+            }
         }
 
         binding.refreshLayout.setOnRefreshListener {
