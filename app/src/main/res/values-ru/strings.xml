@@ -51,6 +51,8 @@
     <string name="prompt_login">Логин</string>
     <string name="prompt_password">Пароль</string>
     <string name="action_sign_in">Войти</string>
+    <string name="warning_no_login">Пустой логин</string>
+    <string name="warning_no_password">Пустой пароль</string>
 
 
 </resources>

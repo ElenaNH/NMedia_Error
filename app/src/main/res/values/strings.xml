@@ -56,6 +56,8 @@
     <string name="prompt_login">Login</string>
     <string name="prompt_password">Password</string>
     <string name="action_sign_in">Sign in</string>
+    <string name="warning_no_login">No login</string>
+    <string name="warning_no_password">No password</string>
 
 
 </resources>
