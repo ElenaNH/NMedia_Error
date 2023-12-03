@@ -1,6 +1,8 @@
 package ru.netology.nmedia.activity
 
+import android.app.ProgressDialog
 import android.os.Bundle
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -28,6 +30,9 @@ class LoginFragment : Fragment() {
 
         binding = FragmentLoginBinding.inflate(layoutInflater, container, false)
 
+        // Разблокируем кнопку (это действие позже удалим, когда сделаем анализ ввода с клавиатуры)
+        binding.signIn.isEnabled = true
+
         subscribe()     // все подписки, которые могут нам потребоваться в данном фрагменте
         setListeners()  // все лиснеры всех элементов данном фрагменте
 
@@ -35,6 +40,8 @@ class LoginFragment : Fragment() {
     }
 
     private fun setListeners() {
+        val tmpModel = viewModel
+
         binding.signIn.setOnClickListener {
 
             // Эта функция тут временно - пока не обрабатываются события клавиатуры
@@ -45,22 +52,12 @@ class LoginFragment : Fragment() {
                 )
             )
 
-            // Эта функция тут так и останется
-            if (viewModel.completed()) {
-                // Блокируем кнопку, чтобы дважды не нажимать
-                binding.signIn.isEnabled = false
-                // Делаем попытку залогиниться
-                viewModel.doLogin()
+            // Попытка логина тут так и останется
 
-            } else {
-                // Пока повторим предупреждение - TODO ПЕРЕДЕЛАТЬ НОРМАЛЬНО
-
-                val warns = viewModel.completionWarningSet.value
-                val errText = warns?.map { getString(it) }
-                    ?.joinToString("; ") ?: "Login info is not completed!"
-                showToast(errText)
-
-            }
+            // Блокируем кнопку, чтобы дважды не нажимать
+            binding.signIn.isEnabled = false
+            // Делаем попытку залогиниться
+            viewModel.doLogin()
         }
 
         //TODO Как сделать обработчики ввода текста в поля, чтобы проверять, когда логин/пароль непусты?
@@ -75,7 +72,7 @@ class LoginFragment : Fragment() {
 
         viewModel.loginSuccessEvent.observe(viewLifecycleOwner) {
             // TODO - если сделать реакцию на ввод с клавиатуры, то кнопка будет не здесь включаться
-            binding.signIn.isEnabled = true // Теперь можем снова нажимать кнопку
+            //binding.signIn.isEnabled = true // Теперь можем снова нажимать кнопку
 
             // Закрытие текущего фрагмента (переход к нижележащему в стеке)
             findNavController().navigateUp()
@@ -86,15 +83,19 @@ class LoginFragment : Fragment() {
             if (warnings.count() == 0) return@observe
 
             // Предупреждение об ошибке комплектования данных (нет логина либо пароля либо ...)
-            showToast(warnings.map { getString(it) }.joinToString("; "))
+            val msg = warnings.map { getString(it) }.joinToString("; ")
+            showToast(msg)
+
+            Log.d("LoginFragment", "Login info: ${viewModel.loginInfo}")
 
         }
 
         viewModel.loginError.observe(viewLifecycleOwner) { errText ->
             if (errText == null) return@observe
+            //if (errText == "") return@observe
 
             // Сообщение об ошибке логина
-            showToast(errText)
+             showToast(errText)
 
             binding.signIn.isEnabled = true // Теперь можем снова нажимать кнопку
         }
