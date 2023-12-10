@@ -23,6 +23,7 @@ import ru.netology.nmedia.viewmodel.PostViewModel
 import ru.netology.nmedia.databinding.FragmentFeedBinding
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.enumeration.PostActionType
+import ru.netology.nmedia.uiview.goToLogin
 import ru.netology.nmedia.util.ConsolePrinter
 
 
@@ -137,10 +138,7 @@ class FeedFragment : Fragment() {
                     }
                 )
             } else {
-                // ЗАПУСК ЛОГИНА
-                findNavController().navigate(
-                    R.id.action_feedFragment_to_loginFragment
-                )
+                goToLogin(this)
             }
         }
 

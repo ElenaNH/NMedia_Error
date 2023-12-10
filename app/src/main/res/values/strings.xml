@@ -59,5 +59,11 @@
     <string name="warning_no_login">No login</string>
     <string name="warning_no_password">No password</string>
 
+    <!-- Dialogs -->
+    <string name="action_continue">Continue</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="logout_confirm_request">You are going \nto log off</string>
+    <string name="error_no_authorization">You cannot create posts being anonymus</string>
+
 
 </resources>

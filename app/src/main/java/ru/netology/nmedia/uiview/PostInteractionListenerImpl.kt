@@ -4,17 +4,16 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 //import androidx.core.content.ContextCompat.startActivity
+import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import ru.netology.nmedia.R
 import ru.netology.nmedia.activity.NewPostFragment.Companion.textArg
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.util.ARG_POST_ID
-import androidx.fragment.app.Fragment
-import androidx.navigation.fragment.findNavController
 import ru.netology.nmedia.activity.FeedFragment
 import ru.netology.nmedia.activity.PostFragment
 import ru.netology.nmedia.adapter.OnInteractionListener
 import ru.netology.nmedia.enumeration.AttachmentType
-import ru.netology.nmedia.model.PhotoModel
 import ru.netology.nmedia.util.ARG_POST_UNCONFIRMED
 import ru.netology.nmedia.viewmodel.PostViewModel
 
@@ -26,7 +25,13 @@ class PostInteractionListenerImpl(viewModelInput: PostViewModel, fragmentInput: 
     private val fragmentParent = fragmentInput
 
     override fun onLike(post: Post) {
-        viewModel.likeById(post.unconfirmed,post.id, !post.likedByMe)
+        if (!viewModel.isAuthorized) {
+            goToLogin(fragmentParent)
+            return
+        }
+
+        // Если попали сюда, то можем выполнять действие
+        viewModel.likeById(post.unconfirmed, post.id, !post.likedByMe)
     }
 
     override fun onShare(post: Post) {

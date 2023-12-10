@@ -54,5 +54,11 @@
     <string name="warning_no_login">Пустой логин</string>
     <string name="warning_no_password">Пустой пароль</string>
 
+    <!-- Dialogs -->
+    <string name="action_continue">Продолжить</string>
+    <string name="action_cancel">Отменить</string>
+    <string name="logout_confirm_request">Переход в \nанонимный \nрежим</string>
+    <string name="error_no_authorization">Вы не можете создавать посты анонимно</string>
+
 
 </resources>

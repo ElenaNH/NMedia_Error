@@ -9,15 +9,20 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.MenuProvider
-import androidx.fragment.app.activityViewModels
+//import androidx.fragment.app.activityViewModels
+//import androidx.navigation.fragment.findNavController
 import androidx.navigation.findNavController
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
+import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.messaging.FirebaseMessaging
 import ru.netology.nmedia.R
 import ru.netology.nmedia.activity.NewPostFragment.Companion.textArg
 import ru.netology.nmedia.auth.AppAuth
 import ru.netology.nmedia.dto.Token
+import ru.netology.nmedia.uiview.goToLogin
+import ru.netology.nmedia.uiview.getCurrentFragment
+import ru.netology.nmedia.util.AndroidUtils
 import ru.netology.nmedia.viewmodel.AuthViewModel
 import ru.netology.nmedia.viewmodel.PostViewModel
 
@@ -61,16 +66,52 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
                     menu.setGroupVisible(R.id.unauthorized, !authorized)
                 }
 
-                override fun onMenuItemSelected(menuItem: MenuItem): Boolean =
-                    when (menuItem.itemId) {
+                override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+                    // Определяем текущий отображаемый фрагмент
+                    val currentFragment = supportFragmentManager.getCurrentFragment()
+
+                    // Обработка выбора меню и возврат true для обработанных
+                    return when (menuItem.itemId) {
                         R.id.auth, R.id.register -> {
-                            // TODO Fix in HomeWork
-                            AppAuth.getInstance().setToken(Token(5L, "x-token")) // TODO заменить реальными данными
+                            if (currentFragment != null) {
+                                goToLogin(currentFragment)
+                            } else {
+                                val stop1 = 1 // мы тут не должны оказаться по идее
+                            }
+                            // Fix in HomeWork - прогрузку тестового токена заменить на авторизацию
+                            //AppAuth.getInstance().setToken(Token(5L, "x-token"))
                             true
                         }
 
                         R.id.logout -> {
-                            AppAuth.getInstance().clearAuth()
+
+                            if (currentFragment != null) {
+                                AndroidUtils.hideKeyboard(currentFragment.requireView())  // Скрыть клавиатуру
+
+                                // Подтверждение логофа //LENGTH_LONG?? //it.rootView??
+                                currentFragment.view?.let {
+                                    Snackbar.make(
+                                        it.rootView,
+                                        R.string.logout_confirm_request,
+                                        Snackbar.LENGTH_INDEFINITE
+                                    )
+                                        .setAction(R.string.action_cancel) { val cancelling = true }
+                                        .setAction(R.string.action_continue) {
+                                            // Логоф
+                                            AppAuth.getInstance().clearAuth()
+                                            // Уходим из режима редактирования в режим чтения
+                                            if (currentFragment is NewPostFragment) {
+                                                // в контроллер нужно передать аргумент, т.к. мы "над" фрагментами, в активити
+                                                findNavController(R.id.newPostFragment).navigateUp()
+                                            }
+                                        }
+                                        .setTextMaxLines(4)
+                                        .show()
+                                } ?: {
+                                    val stop2 = 2 // мы тут не должны оказаться по идее
+                                }
+                            }
+                            // Возвращаем true как признак обработки
                             true
                         }
 
@@ -78,9 +119,10 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
                             false
                         }
                     }
+                }
 
             }.apply {
-                    oldMenuProvider = this
+                oldMenuProvider = this
             }, this)
         }
     }

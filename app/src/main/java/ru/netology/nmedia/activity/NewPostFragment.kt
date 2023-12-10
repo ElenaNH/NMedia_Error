@@ -166,6 +166,20 @@ class NewPostFragment : Fragment() {
                                 warnToast.show()
                                 //return@setOnClickListener
 
+                            } else if (!viewModel.isAuthorized) {
+                                // Предупреждение о необходимости логина
+                                // (не должно появляться при правильных переходах)
+                                val warnToast = Toast.makeText(
+                                    activity,
+                                    getString(R.string.error_no_authorization),
+                                    Toast.LENGTH_SHORT
+                                )
+                                warnToast.setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+                                warnToast.show()
+                                // Уходим отсюда
+                                AndroidUtils.hideKeyboard(requireView()) // скрываем клавиатуру
+                                findNavController().navigateUp()
+
                             } else {
                                 // Поскольку viewModel общая, то можно прямо тут сохраниться
                                 viewModel.changeContent(binding.editContent.text.toString())

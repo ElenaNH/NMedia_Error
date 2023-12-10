@@ -30,11 +30,6 @@ class LoginViewModel : ViewModel() {
     val loginError: LiveData<String?>
         get() = _loginError
 
-//    private val _loginErrorEvent = SingleLiveEvent<String?>()
-//    val loginErrorEvent: LiveData<String?>
-//        get() = _loginErrorEvent
-
-
     // Информация для входа и состояние готовности ко входу:
     // Информация для входа должна проверяться на полноту до того, как будет попытка входа
     private val _loginInfo = MutableLiveData(LoginInfo()) // TODO - отследить нажатие клавиатуры
@@ -60,8 +55,6 @@ class LoginViewModel : ViewModel() {
         // Сброс ошибки логина перед новой попыткой (возможно, осталась от предыдущей попытки)
         _loginError.value = null
 
-
-
         // Отправить запрос авторизации на сервер
         viewModelScope.launch {
             try {
@@ -70,12 +63,14 @@ class LoginViewModel : ViewModel() {
                     _loginSuccessEvent.value = Unit  // Однократное событие
                 else {
                     // Этого быть не должно, т.к. updateUser в случае неуспеха выдает ошибку
-                    _loginError.value = "Unknown login error!"
+                    _loginError.value = "Unexpected login error!"
                 }
             } catch (e: Exception) {
                 ConsolePrinter.printText("CATCH OF UPDATE USER - ${e.message.toString()}")
                 // Установка ошибки логина
-                _loginError.value = e.message.toString()
+                val errText = if (e.message.toString() == "") "Unknown login error!"
+                        else e.message.toString()
+                _loginError.value = errText
             }
         } // end of launch
 
@@ -90,11 +85,15 @@ class LoginViewModel : ViewModel() {
             )
 
         } catch (e: Exception) {
-            throw RuntimeException(e.message.toString())
+            // Обычно сюда попадаем, если нет ответа сервера
+            throw RuntimeException("Server response failed: ${e.message.toString()}")
         }
 
         if (!(response?.isSuccessful ?: false)) {
-            throw RuntimeException(response?.message() ?: "No server response")
+            // А сюда попадаем, потому что сервер вернул isSuccessful == false
+            val errText = if ((response?.message() == null) || (response?.message() == ""))
+                "No server response" else response.message()
+            throw RuntimeException("Request declined: $errText")
         }
         val responseToken = response?.body() ?: throw RuntimeException("body is null")
 
@@ -114,25 +113,24 @@ class LoginViewModel : ViewModel() {
         _loginInfo.value = newLoginInfo
 
         // Проверка полноты информации для входа, установка набора предупреждений
-        val warnIdSet = emptySet<Int>()
+        val warnIdSet = mutableSetOf<Int>()
 
-        // НЕ СРАБАТЫВАЕТ ЗАПОЛНЕНИЕ warnIdSet
         loginInfo.value?.let {
             if (it.login.length == 0) {
-                warnIdSet.plus(R.string.warning_no_login)
+                warnIdSet.add(R.string.warning_no_login)
+
             }
             if (it.password.length == 0) {
-                warnIdSet.plus(R.string.warning_no_password)
+                warnIdSet.add(R.string.warning_no_password)
             }
         }
         _completionWarningSet.value = warnIdSet
 
         // TODO - Подумать, как еще можно обеспечить синхронизацию обработки недостаточних данных
-        viewModelScope.launch { delay(500) } // Строго после установки WarningSet!!!
-
+        viewModelScope.launch { delay(300) } // Строго после установки WarningSet!!!
     }
 
-    private fun completed(): Boolean {
+    fun completed(): Boolean {
         return _completionWarningSet.value?.count() == 0
     }
 
