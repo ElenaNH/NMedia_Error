@@ -2,6 +2,7 @@ package ru.netology.nmedia.uiview
 
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
+import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
 import ru.netology.nmedia.R
 import ru.netology.nmedia.activity.FeedFragment
@@ -26,11 +27,22 @@ fun goToLogin(startFragment: Fragment) {
         ) // Когда тот фрагмент закроется, опять окажемся здесь (по стеку)
 }
 
+fun FragmentManager.getRootFragment(): NavHostFragment =
+    this.findFragmentById(
+        R.id.nav_host_fragment
+    ) as NavHostFragment
+
+fun FragmentManager.getCurrentFragment(): Fragment? {
+    return this
+        .getRootFragment()
+        .childFragmentManager
+        .primaryNavigationFragment
+}
+
+/*
 fun FragmentManager.getCurrentFragment(): Fragment? {
     return this
         .findFragmentById(R.id.nav_host_fragment)
         ?.childFragmentManager
         ?.primaryNavigationFragment
-}
-
-
+}*/

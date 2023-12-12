@@ -23,6 +23,7 @@ import ru.netology.nmedia.auth.AppAuth
 import ru.netology.nmedia.dto.Token
 import ru.netology.nmedia.uiview.goToLogin
 import ru.netology.nmedia.uiview.getCurrentFragment
+import ru.netology.nmedia.uiview.getRootFragment
 import ru.netology.nmedia.util.AndroidUtils
 import ru.netology.nmedia.viewmodel.AuthViewModel
 import ru.netology.nmedia.viewmodel.PostViewModel
@@ -70,6 +71,7 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
                 override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
                     // Определяем текущий отображаемый фрагмент
                     val currentFragment = supportFragmentManager.getCurrentFragment()
+                    val rootFragment = supportFragmentManager.getRootFragment()
 
                     // Обработка выбора меню и возврат true для обработанных
                     return when (menuItem.itemId) {
@@ -101,13 +103,7 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
                                             AppAuth.getInstance().clearAuth()
                                             // Уходим из режима редактирования в режим чтения
                                             if (currentFragment is NewPostFragment) {
-                                                // в контроллер нужно передать аргумент, т.к. мы "над" фрагментами, в активити
-                                                //findNavController(R.id.newPostFragment).navigateUp()
-                                                val navHostFragment =
-                                                    supportFragmentManager.findFragmentById(
-                                                        R.id.nav_host_fragment
-                                                    ) as NavHostFragment
-                                                navHostFragment.navController.navigateUp()
+                                                rootFragment.navController.navigateUp()
                                             }
                                         }
                                         .setTextMaxLines(4)
