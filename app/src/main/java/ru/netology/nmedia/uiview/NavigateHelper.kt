@@ -33,11 +33,4 @@ fun FragmentManager.getCurrentFragment(): Fragment? {
         ?.primaryNavigationFragment
 }
 
-/*
-fun getCurrentFragment(supportFragmentManager: FragmentManager): Fragment? {
-    return supportFragmentManager
-        .findFragmentById(R.id.nav_host_fragment)
-        ?.childFragmentManager
-        ?.primaryNavigationFragment
-}
-*/
+

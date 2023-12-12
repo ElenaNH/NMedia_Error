@@ -12,6 +12,7 @@ import androidx.core.view.MenuProvider
 //import androidx.fragment.app.activityViewModels
 //import androidx.navigation.fragment.findNavController
 import androidx.navigation.findNavController
+import androidx.navigation.fragment.NavHostFragment
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.material.snackbar.Snackbar
@@ -84,7 +85,6 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
                         }
 
                         R.id.logout -> {
-
                             if (currentFragment != null) {
                                 AndroidUtils.hideKeyboard(currentFragment.requireView())  // Скрыть клавиатуру
 
@@ -102,7 +102,12 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
                                             // Уходим из режима редактирования в режим чтения
                                             if (currentFragment is NewPostFragment) {
                                                 // в контроллер нужно передать аргумент, т.к. мы "над" фрагментами, в активити
-                                                findNavController(R.id.newPostFragment).navigateUp()
+                                                //findNavController(R.id.newPostFragment).navigateUp()
+                                                val navHostFragment =
+                                                    supportFragmentManager.findFragmentById(
+                                                        R.id.nav_host_fragment
+                                                    ) as NavHostFragment
+                                                navHostFragment.navController.navigateUp()
                                             }
                                         }
                                         .setTextMaxLines(4)
