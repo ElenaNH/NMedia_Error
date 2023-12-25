@@ -145,6 +145,8 @@ dependencies {
     // Загрузка изображений на сервер, продвинутая работа с изображениями
     implementation "com.github.dhaval2404:imagepicker:$imagepicker_version"  // Требует добавления в список репозиториев в файле settings.gradle строки maven { url "https://jitpack.io" }
 
+    // 2 этап рассылки уведомлений (на корутинах)
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-play-services:$coroutines_version"
 
     // Автотесты
     testImplementation "androidx.arch.core:core-testing:$arch_version"

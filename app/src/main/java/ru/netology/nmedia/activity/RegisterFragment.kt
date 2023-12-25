@@ -11,17 +11,17 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
-import ru.netology.nmedia.auth.LoginInfo
-import ru.netology.nmedia.databinding.FragmentLoginBinding
+import ru.netology.nmedia.auth.RegisterInfo
+import ru.netology.nmedia.databinding.FragmentRegisterBinding
 import ru.netology.nmedia.util.AndroidUtils
 import ru.netology.nmedia.util.ConsolePrinter
-import ru.netology.nmedia.viewmodel.LoginViewModel
+import ru.netology.nmedia.viewmodel.RegisterViewModel
 
 
-class LoginFragment : Fragment() {
+class RegisterFragment : Fragment() {
 
-    val viewModel by viewModels<LoginViewModel>()
-    private lateinit var binding: FragmentLoginBinding
+    val viewModel by viewModels<RegisterViewModel>()
+    private lateinit var binding: FragmentRegisterBinding
 
     // Создано по образцу FeedFragment
     override fun onCreateView(
@@ -29,10 +29,10 @@ class LoginFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
 
-        binding = FragmentLoginBinding.inflate(layoutInflater, container, false)
+        binding = FragmentRegisterBinding.inflate(layoutInflater, container, false)
 
         // TODO Разблокируем кнопку (это действие позже удалим, когда сделаем анализ ввода с клавиатуры)
-        binding.signIn.isEnabled = true
+        binding.register.isEnabled = true
 
         subscribe()     // все подписки, которые могут нам потребоваться в данном фрагменте
         setListeners()  // все лиснеры всех элементов данном фрагменте
@@ -43,15 +43,17 @@ class LoginFragment : Fragment() {
     private fun setListeners() {
         //val tmpModel = viewModel
 
-        binding.signIn.setOnClickListener {
+        binding.register.setOnClickListener {
 
             AndroidUtils.hideKeyboard(requireView())  // Скрыть клавиатуру
 
             // Эта функция тут временно - пока не обрабатываются события клавиатуры
-            viewModel.resetLoginInfo(
-                LoginInfo(
+            viewModel.resetRegisterInfo(
+                RegisterInfo(
+                    binding.username.text.toString(),
                     binding.login.text.toString(),
-                    binding.password.text.toString()
+                    binding.password.text.toString(),
+                    binding.password2.text.toString(),
                 )
             )
 
@@ -59,10 +61,10 @@ class LoginFragment : Fragment() {
 
             if (viewModel.completed()) {
                 // Блокируем кнопку, чтобы дважды не нажимать
-                binding.signIn.isEnabled = false
+                binding.register.isEnabled = false
                 // Делаем попытку залогиниться
-                viewModel.doLogin()
-            } // else {} // НЕ будем уведомлять. Уже должно было появиться уведомление после resetLoginInfo
+                viewModel.doRegister()
+            } // else {} // НЕ будем уведомлять. Уже должно было появиться уведомление после resetRegisterInfo
         }
 
         //TODO Как сделать обработчики ввода текста в поля, чтобы проверять, когда логин/пароль непусты?
@@ -71,11 +73,11 @@ class LoginFragment : Fragment() {
 
     private fun subscribe() {
 
-        /*viewModel.loginInfo.observe(viewLifecycleOwner) {
+        /*viewModel.registerInfo.observe(viewLifecycleOwner) {
 
         }*/
 
-        viewModel.loginSuccessEvent.observe(viewLifecycleOwner) {
+        viewModel.registerSuccessEvent.observe(viewLifecycleOwner) {
             // TODO - если сделать реакцию на ввод с клавиатуры, то кнопка будет не здесь включаться
             //binding.signIn.isEnabled = true // Теперь можем снова нажимать кнопку
 
@@ -83,7 +85,7 @@ class LoginFragment : Fragment() {
 
             // Закрытие текущего фрагмента (переход к нижележащему в стеке)
             findNavController().navigateUp()
-            ConsolePrinter.printText("LoginFragment was leaved")
+            ConsolePrinter.printText("RegisterFragment was leaved")
         }
 
         viewModel.completionWarningSet.observe(viewLifecycleOwner) { warnings ->
@@ -93,18 +95,18 @@ class LoginFragment : Fragment() {
             val msg = warnings.map { getString(it) }.joinToString("; ")
             showToast(msg)
 
-            Log.d("LoginFragment", "Login info: ${viewModel.loginInfo}")
+            Log.d("RegisterFragment", "Register info: ${viewModel.registerInfo}")
 
         }
 
-        viewModel.loginError.observe(viewLifecycleOwner) { errText ->
+        viewModel.registerError.observe(viewLifecycleOwner) { errText ->
             if (errText == null) return@observe
             //if (errText == "") return@observe
 
             // Сообщение об ошибке логина
-             showToast(errText)
+            showToast(errText)
 
-            binding.signIn.isEnabled = true // Теперь можем снова нажимать кнопку
+            binding.register.isEnabled = true // Теперь можем снова нажимать кнопку
         }
 
     }

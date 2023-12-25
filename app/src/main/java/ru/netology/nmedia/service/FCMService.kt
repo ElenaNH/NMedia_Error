@@ -16,6 +16,7 @@ import com.google.gson.Gson
 import ru.netology.nmedia.R
 import kotlin.random.Random
 import androidx.core.content.PermissionChecker
+import ru.netology.nmedia.auth.AppAuth
 
 
 class FCMService : FirebaseMessagingService() {
@@ -51,7 +52,8 @@ class FCMService : FirebaseMessagingService() {
     }
 
     override fun onNewToken(token: String) {
-        println(token)      // Печатает токен в консоль, но возможно сохранять в файл или базу и т.п.
+        //println(token)      // Печатает токен в консоль, но возможно сохранять в файл или базу и т.п.
+        AppAuth.getInstance().sendPushToken(token) // отправка на сервер
     }
 
     private fun handleLike(content: Like) {

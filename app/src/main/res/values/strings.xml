@@ -53,17 +53,23 @@
     <!-- Login, Registration -->
     <string name="prompt_server">Server</string>
     <string name="prompt_port">Port</string>
+    <string name="prompt_username">Username</string>
     <string name="prompt_login">Login</string>
     <string name="prompt_password">Password</string>
+    <string name="prompt_password_repeat">Repeat password</string>
     <string name="action_sign_in">Sign in</string>
+    <string name="action_register">Register</string>
     <string name="warning_no_login">No login</string>
     <string name="warning_no_password">No password</string>
+    <string name="warning_no_username">No username</string>
+    <string name="warning_no_matching_password">Password does not match</string>
 
     <!-- Dialogs -->
     <string name="action_continue">Continue</string>
     <string name="action_cancel">Cancel</string>
     <string name="logout_confirm_request">You are going \nto log off</string>
     <string name="error_no_authorization">You cannot create posts being anonymus</string>
+    <string name="action_confirm_title">Action confirming</string>
 
 
 </resources>
