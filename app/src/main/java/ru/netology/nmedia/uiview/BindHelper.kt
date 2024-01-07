@@ -2,10 +2,10 @@ package ru.netology.nmedia.uiview
 
 import android.widget.ImageView
 import com.bumptech.glide.Glide
+import ru.netology.nmedia.BuildConfig
 import ru.netology.nmedia.R
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.model.photoModel
-import ru.netology.nmedia.util.BASE_URL
 
 fun loadImage(post: Post?, imageView: ImageView) {
     // Сначала сбросим старое изображение
@@ -21,7 +21,7 @@ fun loadImage(post: Post?, imageView: ImageView) {
         } else {
             // Сохраненное изображение загрузим с сервера/кэша (ранее было в папке images, теперь - media
             val imgUrl =
-                "$BASE_URL/media/${post.attachment?.url ?: ""}" // Если нет аттача, то мы сюда не попадем, но все же обработаем null
+                "${BuildConfig.BASE_URL}/media/${post.attachment?.url ?: ""}" // Если нет аттача, то мы сюда не попадем, но все же обработаем null
             // Условие для загрузки: wrap_content для высоты imageView
             Glide.with(imageView)
                 .load(imgUrl)

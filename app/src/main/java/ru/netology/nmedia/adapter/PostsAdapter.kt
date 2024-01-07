@@ -3,23 +3,16 @@ package ru.netology.nmedia.adapter
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.PopupMenu
-import androidx.fragment.app.activityViewModels
-import androidx.recyclerview.widget.RecyclerView
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.ListAdapter
+import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide   //import com.squareup.picasso.Picasso
+import ru.netology.nmedia.BuildConfig
 import ru.netology.nmedia.R
 import ru.netology.nmedia.databinding.CardPostBinding
 import ru.netology.nmedia.dto.Post
-import ru.netology.nmedia.dto.statisticsToString   // при этом dto.Post импортируется через PostViewModel и связанный с ней Repository
-import com.bumptech.glide.Glide
-import androidx.core.graphics.drawable.toBitmap
-import androidx.core.view.isVisible
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-//import com.squareup.picasso.Picasso
+import ru.netology.nmedia.dto.statisticsToString
 import ru.netology.nmedia.enumeration.AttachmentType
-import ru.netology.nmedia.util.BASE_URL
-import androidx.fragment.app.activityViewModels
-import ru.netology.nmedia.model.photoModel
-import ru.netology.nmedia.viewmodel.PostViewModel
 import ru.netology.nmedia.uiview.loadImage
 
 interface OnInteractionListener {
@@ -121,7 +114,7 @@ class PostViewHolder(
 
             // И после всех привязок начинаем, наконец, грузить картинку
             //val url = "${BASE_URL}/avatars/${post.avatarFileName()}"
-            val url = "${BASE_URL}/avatars/${post.authorAvatar}"
+            val url = "${BuildConfig.BASE_URL}/avatars/${post.authorAvatar}"
             Glide.with(binding.imgAvatar)
                 .load(url)
                 .circleCrop()

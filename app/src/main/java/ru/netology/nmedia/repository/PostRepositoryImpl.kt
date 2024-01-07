@@ -1,17 +1,15 @@
 package ru.netology.nmedia.repository
 
-import androidx.core.net.toFile
-import kotlinx.coroutines.flow.*
-//import kotlinx.coroutines.flow.Flow
-//import kotlinx.coroutines.flow.flow
-//import kotlinx.coroutines.flow.flowOn
-//import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import retrofit2.Response
-import ru.netology.nmedia.api.PostsApi
+import ru.netology.nmedia.api.ApiService
 import ru.netology.nmedia.dao.PostDao
 import ru.netology.nmedia.dto.Attachment
 import ru.netology.nmedia.dto.Media
@@ -21,19 +19,17 @@ import ru.netology.nmedia.entity.fromDto
 import ru.netology.nmedia.entity.toDto
 import ru.netology.nmedia.enumeration.AttachmentType
 import ru.netology.nmedia.enumeration.PostSelectionType
-import ru.netology.nmedia.util.ConsolePrinter
-//import java.io.IOException
-//import java.util.concurrent.TimeUnit
-//import kotlin.Exception
-//import java.lang.RuntimeException
 import ru.netology.nmedia.error.ApiError
-import ru.netology.nmedia.model.*
-import java.io.File
-import android.net.Uri
-import kotlin.RuntimeException
+import ru.netology.nmedia.model.PhotoModel
+import ru.netology.nmedia.model.photoModel
+import ru.netology.nmedia.util.ConsolePrinter
+import javax.inject.Inject
 
 
-class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
+class PostRepositoryImpl @Inject constructor(
+    private val postDao: PostDao,
+    private val apiService: ApiService,
+) : PostRepository {
     override val data: Flow<List<Post>> = postDao.getAll()
         .map { it.toDto() }  //.map { it.map { entity -> entity.copy(hidden = 0) }.toDto() } - скрытых мы не достанем оттуда
         .flowOn(Dispatchers.Default)
@@ -48,7 +44,7 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
         // ******************************************************************************
 
         // Запросим список постов с сервера
-        val response = PostsApi.retrofitService.getAll()
+        val response = apiService.getAll()
         if (!response.isSuccessful) {
             throw RuntimeException(response.message())
         }
@@ -156,7 +152,7 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
                 // при ошибке фотомодели почистим аттач
                 val attach = if (post.unsavedAttach == 1) null else post.attachment
                 // Отправляем запрос сохранения на сервер - не будет нового аттача, но может пропасть старый
-                response = PostsApi.retrofitService.save(
+                response = apiService.save(
                     if (unconfirmedPost) post.copy(
                         id = 0,
                         unconfirmed = 0,
@@ -175,7 +171,7 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
                     type = post.attachment?.type ?: AttachmentType.IMAGE
                 )
                 ConsolePrinter.printText("Created attach by PhotoModel")
-                response = PostsApi.retrofitService.save(
+                response = apiService.save(
                     if (unconfirmedPost) post.copy(
                         id = 0,
                         unconfirmed = 0,
@@ -234,7 +230,7 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
             photoModel.file.asRequestBody()
         )
 
-        val response = PostsApi.retrofitService.saveMedia(part)
+        val response = apiService.saveMedia(part)
 
         if (!response.isSuccessful) {
             throw RuntimeException(response.errorBody()?.string())
@@ -254,7 +250,7 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
         // Если запрос к серверу вызовет исключение, то аккуратно переправим его выше
         try {
             // отправляем запрос удаления на сервер
-            val response = PostsApi.retrofitService.removeById(id)
+            val response = apiService.removeById(id)
             ConsolePrinter.printText("HAVE GOT DELETE RESPONSE")
             if (!response.isSuccessful) {
                 throw RuntimeException("No server response")
@@ -296,8 +292,8 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
         try {
             // Затем отправляем запрос лайка/дизлайка на сервер
             response =
-                if (setLikedOn) PostsApi.retrofitService.likeById(id)
-                else PostsApi.retrofitService.dislikeById(id)
+                if (setLikedOn) apiService.likeById(id)
+                else apiService.dislikeById(id)
             ConsolePrinter.printText("HAVE GOT LIKE RESPONSE")
         } catch (e: Exception) {
             ConsolePrinter.printText("HAVE NOT GOT LIKE RESPONSE")
@@ -349,7 +345,7 @@ class PostRepositoryImpl(private val postDao: PostDao) : PostRepository {
             delay(120_000L)  // delay(10_000L)
             var response: Response<List<Post>>
             try {
-                response = PostsApi.retrofitService.getNewer(id)
+                response = apiService.getNewer(id)
                 ConsolePrinter.printText("HAVE GOT NEWER RESPONSE")
 ////
                 if (!response.isSuccessful) {

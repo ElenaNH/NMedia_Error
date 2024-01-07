@@ -1,13 +1,13 @@
 package ru.netology.nmedia
 
 import android.app.Application
-import ru.netology.nmedia.auth.AppAuth
+import dagger.hilt.android.HiltAndroidApp
 
-class App : Application() {
 // Чтобы у этого класса была связь с процессом, его нужно зарегистрировать в манифесте
+// Здесь необходима аннотация для запуска Dagger Hilt
 
-    override fun onCreate() {
-        super.onCreate()
-        AppAuth.initApp(this)
-    }
-}
+@HiltAndroidApp
+class App : Application()
+
+// Все удалили, т.к. не нужно переопределять методы родителя
+

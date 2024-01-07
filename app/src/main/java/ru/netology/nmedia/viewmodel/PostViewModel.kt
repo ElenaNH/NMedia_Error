@@ -1,15 +1,15 @@
 package ru.netology.nmedia.viewmodel
 
-import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.*
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import ru.netology.nmedia.auth.AppAuth
-import ru.netology.nmedia.db.AppDb
+//import ru.netology.nmedia.db.AppDb
 import ru.netology.nmedia.dto.Attachment
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.enumeration.AttachmentType
@@ -21,20 +21,18 @@ import ru.netology.nmedia.repository.*
 import ru.netology.nmedia.util.ConsolePrinter
 import ru.netology.nmedia.util.SingleLiveEvent
 import java.io.File
+import javax.inject.Inject
 
-//import java.io.IOException
-//import kotlin.concurrent.thread
-
-
-private val emptyPost = Post.getEmptyPost()
-
-class PostViewModel(application: Application) : AndroidViewModel(application) {
-    // упрощённый вариант
-    private val repository: PostRepository =
-        PostRepositoryImpl(AppDb.getInstance(application).postDao())
+@HiltViewModel
+class PostViewModel @Inject constructor(
+    private val repository: PostRepository,
+//    private val
+    appAuth: AppAuth,
+) : ViewModel() {
+    val appAuth2 = appAuth // TODO зачем было убирать private val? теперь компилится только через Париж
 
     val data: LiveData<FeedModel> =
-        AppAuth.getInstance().data.flatMapLatest { token ->
+        appAuth.data.flatMapLatest { token ->
             repository.data
                 .map { posts ->
                     posts.map { it.copy(ownedByMe = it.authorId == token?.id) }
@@ -43,12 +41,20 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
 
             .asLiveData(Dispatchers.Default)
+
     // Раз уж мы все равно используем AppAuth для преобразования данных, то и статус не помешает тоже
     val isAuthorized: Boolean
-        get() = AppAuth.getInstance().data.value != null    // Берем StateFlow и проверяем
+        get() = appAuth2.data.value != null    // Берем StateFlow и проверяем
 
-    val edited = MutableLiveData(emptyPost)
-    val draft = MutableLiveData(emptyPost)  // И будем сохранять это только "in memory"
+
+    fun emptyPostForCurrentUser() = Post.getEmptyPost().copy(
+        authorId = appAuth2.currentUser().id,
+        author = appAuth2.currentUser().name,
+        authorAvatar = appAuth2.currentUser().avatar,
+    )
+
+    val edited = MutableLiveData(emptyPostForCurrentUser())
+    val draft = MutableLiveData(emptyPostForCurrentUser())  // И будем сохранять это только "in memory"
 
     val newerCount: LiveData<Int> = data.switchMap {
         repository.getNewerCount(it.posts
@@ -171,7 +177,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 quitEditing() // сбрасываем редактирование при попытке записи (заменим на emptyPost)
                 ConsolePrinter.printText("After quitEditing() call...")
                 // Черновик сбросим, т.к. у нас будет либо подтвержденный, либо неподтвержденный пост
-                setDraft(emptyPost)
+                setDraft(emptyPostForCurrentUser())
 
             }
 
@@ -238,14 +244,14 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun quitEditing() {
-        edited.value = emptyPost
+        edited.value = emptyPostForCurrentUser()
     }
 
     fun setDraft(post: Post?) {
         // Черновик только для нового поста и только если вышли без сохранения
         if (post?.id == 0L)
             draft.value = post?.copy(content = post.content.trim())
-                ?: emptyPost
+                ?: emptyPostForCurrentUser()
     }
 
     fun getDraftContent(): String {

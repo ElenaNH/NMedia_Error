@@ -13,17 +13,22 @@ import androidx.core.app.NotificationManagerCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.google.gson.Gson
+import dagger.hilt.android.AndroidEntryPoint
 import ru.netology.nmedia.R
-import kotlin.random.Random
-import androidx.core.content.PermissionChecker
 import ru.netology.nmedia.auth.AppAuth
+import kotlin.random.Random
+import ru.netology.nmedia.util.ConsolePrinter
+import javax.inject.Inject
 
-
+@AndroidEntryPoint
 class FCMService : FirebaseMessagingService() {
     private val action = "action"
     private val content = "content"
     private val channelId = "remote"
     private val gson = Gson()
+
+    @Inject
+    lateinit var appAuth: AppAuth
 
     override fun onCreate() {
         super.onCreate()
@@ -41,19 +46,65 @@ class FCMService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
 
-        message.data[action]?.let {
-            if (!Action.values().map { elem -> elem.toString() }.contains(it)) return@let
-            when (Action.valueOf(it)) {
-                Action.LIKE -> handleLike(gson.fromJson(message.data[content], Like::class.java))
-                Action.NEW_POST -> handleNewPost(gson.fromJson(message.data[content], NewPostInfo::class.java))
+//        Log.d("message received : ", "${message.data.keys}")
+        ConsolePrinter.printText("message received : ")
+
+        try {
+            message.data[content]?.let {
+                val simpleInfo = gson.fromJson(
+                    message.data[content],
+                    SimpleInfo::class.java
+                )
+                val userId = appAuth.data.value?.id
+                ConsolePrinter.printText("userId=")
+                when {
+                    (simpleInfo.recipientId == null) -> handleSimple(simpleInfo)
+                    (simpleInfo.recipientId == userId) -> handleSimple(simpleInfo)
+                    else -> {
+                        // Отправляем заново push-токен
+                        appAuth.sendPushToken()
+                    }
+                }
             }
+
+            /*  message.data[action]?.let {
+               if (!Action.values().map { elem -> elem.toString() }.contains(it)) return@let
+               when (Action.valueOf(it)) {
+                   Action.LIKE -> handleLike(gson.fromJson(message.data[content], Like::class.java))
+                   Action.NEW_POST -> handleNewPost(
+                       gson.fromJson(
+                           message.data[content],
+                           NewPostInfo::class.java
+                       )
+                   )
+               }
+           }*/
+
+            val myStop = 1  // Просто для точки останова
+
+        } catch (e: Exception) {
+            //        Log.d("message treating error : ")
+            ConsolePrinter.printText("message treating error : ")
         }
-        val myStop = 1  // Просто для точки останова
     }
 
     override fun onNewToken(token: String) {
-        //println(token)      // Печатает токен в консоль, но возможно сохранять в файл или базу и т.п.
-        AppAuth.getInstance().sendPushToken(token) // отправка на сервер
+        // Печатает токен в консоль, но возможно сохранять в файл или базу и т.п.
+        ConsolePrinter.printText("push-token=$token")
+        appAuth.sendPushToken(token) // отправка на сервер
+    }
+
+    private fun handleSimple(simpleInfo: SimpleInfo) {
+        val notification = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(
+                getString(R.string.notification_info).plus(simpleInfo.content)
+            )
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+
+        notifyWith(notification)
+
     }
 
     private fun handleLike(content: Like) {
@@ -138,3 +189,9 @@ data class NewPostInfo(
     val postId: Long,
     val content: String
 )
+
+data class SimpleInfo(
+    val recipientId: Long?,
+    val content: String,
+)
+

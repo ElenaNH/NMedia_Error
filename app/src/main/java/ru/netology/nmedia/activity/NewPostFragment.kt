@@ -1,51 +1,44 @@
 package ru.netology.nmedia.activity
 
 import android.app.Activity
-import android.graphics.drawable.Drawable
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import androidx.fragment.app.Fragment
-//import androidx.fragment.app.viewModels
-import androidx.fragment.app.activityViewModels
-import androidx.navigation.fragment.findNavController
 import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.addCallback
-import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toFile
 import androidx.core.view.MenuProvider
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
-import com.bumptech.glide.Glide
-import com.bumptech.glide.request.target.CustomTarget
-import com.bumptech.glide.request.transition.Transition
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import com.github.dhaval2404.imagepicker.ImagePicker
-import ru.netology.nmedia.databinding.FragmentNewPostBinding
-import ru.netology.nmedia.util.AndroidUtils
-import ru.netology.nmedia.util.StringArg
-import ru.netology.nmedia.viewmodel.PostViewModel
+import dagger.hilt.android.AndroidEntryPoint
 import ru.netology.nmedia.R
+import ru.netology.nmedia.databinding.FragmentNewPostBinding
 import ru.netology.nmedia.dto.Post
-import ru.netology.nmedia.model.PhotoModel
 import ru.netology.nmedia.model.photoModel
 import ru.netology.nmedia.uiview.loadImage
+import ru.netology.nmedia.util.AndroidUtils
 import ru.netology.nmedia.util.ConsolePrinter
+import ru.netology.nmedia.util.StringArg
+import ru.netology.nmedia.viewmodel.PostViewModel
 
+@AndroidEntryPoint
 class NewPostFragment : Fragment() {
 
     companion object {
         var Bundle.textArg: String? by StringArg
     }
 
-    //  viewModels используем теперь с аргументом, чтобы сделать общую viewModel для всех фрагментов
-//    private val viewModel: PostViewModel by viewModels(ownerProducer = ::requireParentFragment)
-    private val viewModel: PostViewModel by activityViewModels()
+    private val viewModel: PostViewModel by viewModels(ownerProducer = ::requireParentFragment)
 
     private val photoLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -78,7 +71,7 @@ class NewPostFragment : Fragment() {
                 )
                 ConsolePrinter.printText("Draft content saved: ${viewModel.draft.value?.content ?: ""}")
             } else {
-                viewModel.setDraft(Post.getEmptyPost())
+                viewModel.setDraft(viewModel.emptyPostForCurrentUser())
                 ConsolePrinter.printText("Draft content cleared")
             }
             // После установки черновика есть смысл почистить нашу фотомодель

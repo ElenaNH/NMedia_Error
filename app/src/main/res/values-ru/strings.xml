@@ -28,6 +28,7 @@
     <!-- Notifications -->
     <string name="google_play_unavailable">Google Api не доступно</string>
     <string name="notification_user_liked">Участник %1$s одобрил сообщение участника %2$s</string>
+    <string name="notification_info">Информация:</string>
     <string name="channel_remote_name">Сообщения сервера</string>
     <string name="channel_remote_description">Сообщения удаленного сервера</string>
     <string name="notification_new_post">%1$s опубликовал сообщение</string>

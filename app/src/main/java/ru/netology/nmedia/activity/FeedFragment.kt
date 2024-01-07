@@ -11,10 +11,11 @@ import androidx.navigation.fragment.findNavController
 //import androidx.navigation.findNavController  // и этот не подходит (но он использовался для перехода из активити)
 //import android.view.Gravity
 //import android.widget.Toast
-import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.RecyclerView.AdapterDataObserver
 import com.google.android.material.snackbar.Snackbar
 import androidx.core.view.isVisible
+import androidx.fragment.app.viewModels
+import dagger.hilt.android.AndroidEntryPoint
 import ru.netology.nmedia.R
 import ru.netology.nmedia.activity.NewPostFragment.Companion.textArg
 import ru.netology.nmedia.uiview.PostInteractionListenerImpl // Было до клиент-серверной модели
@@ -26,11 +27,9 @@ import ru.netology.nmedia.enumeration.PostActionType
 import ru.netology.nmedia.uiview.goToLogin
 import ru.netology.nmedia.util.ConsolePrinter
 
-
+@AndroidEntryPoint
 class FeedFragment : Fragment() {
-    //  viewModels используем теперь с аргументом, чтобы сделать общую viewModel для всех фрагментов
-//    val viewModel: PostViewModel by viewModels(ownerProducer = ::requireParentFragment)
-    private val viewModel: PostViewModel by activityViewModels()
+    private val viewModel: PostViewModel by viewModels(ownerProducer = ::requireParentFragment)
 
     // interactionListener должен быть доступен также из фрагмента PostFragment
     private val interactionListener by lazy { PostInteractionListenerImpl(viewModel, this) }
@@ -129,7 +128,7 @@ class FeedFragment : Fragment() {
                     Bundle().apply {
                         ConsolePrinter.printText("Draft content for textArg = ${viewModel.getDraftContent()}")
                         //Через вьюмодель
-                        viewModel.startEditing(viewModel.draft.value ?: Post.getEmptyPost())
+                        viewModel.startEditing(viewModel.draft.value ?: viewModel.emptyPostForCurrentUser())
                         //Через аргумент
                         textArg =
                             viewModel.getDraftContent()  // В запускаемый фрагмент передаем содержимое черновика

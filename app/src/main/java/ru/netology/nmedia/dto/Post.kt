@@ -1,8 +1,6 @@
 package ru.netology.nmedia.dto
 
 import ru.netology.nmedia.enumeration.AttachmentType
-import android.graphics.drawable.Drawable
-import ru.netology.nmedia.util.currentUser
 
 fun Long.statisticsToString(): String {
     val stat = this
@@ -57,9 +55,9 @@ data class Post(
         fun getEmptyPost(): Post {
             return Post(
                 id = 0,
-                authorId = currentUser().id, //временно
-                author = currentUser().name, //временно
-                authorAvatar = currentUser().avatar, //временно
+                authorId = 0L, //dependencyContainer.appAuth.currentUser().id
+                author = "Undefined", //dependencyContainer.appAuth.currentUser().name
+                authorAvatar = "", //dependencyContainer.appAuth.currentUser().avatar
                 content = "",
                 published = "",
                 likedByMe = false,
