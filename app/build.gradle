@@ -80,6 +80,7 @@ dependencies {
     def coordinatorlayout_version = "1.2.0"
     def imagepicker_version = "2.1"
     def hilt_version = "2.44"   // ТА ЖЕ ВЕРСИЯ, что и в Project build.gradle
+    def paging_version = "3.2.1"  // в лекции 3.1.0
 
     //implementation 'androidx.core:core-ktx:+' // Avoid using + in version numbers; can lead to unpredictable and unrepeatable builds (androidx.core:core-ktx:+)
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
@@ -143,6 +144,9 @@ dependencies {
     // Dependency Injection (Dagger Hilt)
     implementation "com.google.dagger:hilt-android:$hilt_version"
     kapt "com.google.dagger:hilt-compiler:$hilt_version"
+
+    // Пагинация
+    implementation "androidx.paging:paging-runtime-ktx:$paging_version"
 
     // Автотесты
     testImplementation "androidx.arch.core:core-testing:$arch_version"

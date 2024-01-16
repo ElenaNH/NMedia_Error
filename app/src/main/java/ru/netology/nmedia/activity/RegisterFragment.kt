@@ -8,18 +8,21 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import ru.netology.nmedia.auth.RegisterInfo
 import ru.netology.nmedia.databinding.FragmentRegisterBinding
 import ru.netology.nmedia.util.AndroidUtils
 import ru.netology.nmedia.util.ConsolePrinter
+import ru.netology.nmedia.viewmodel.LoginViewModel
 import ru.netology.nmedia.viewmodel.RegisterViewModel
 
 
 class RegisterFragment : Fragment() {
 
-    val viewModel by viewModels<RegisterViewModel>()
+    //val viewModel by viewModels<RegisterViewModel>()
+    val viewModel: RegisterViewModel by activityViewModels()
     private lateinit var binding: FragmentRegisterBinding
 
     // Создано по образцу FeedFragment

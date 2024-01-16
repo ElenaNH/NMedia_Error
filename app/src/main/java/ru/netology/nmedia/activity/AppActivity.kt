@@ -32,6 +32,12 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
     @Inject
     lateinit var appAuth: AppAuth
 
+    @Inject
+    lateinit var firebaseMessaging: FirebaseMessaging
+
+    @Inject
+    lateinit var googleApiAvailability: GoogleApiAvailability
+
     private val viewModel: AuthViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -151,7 +157,8 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
     }
 
     private fun checkGoogleApiAvailability() {
-        with(GoogleApiAvailability.getInstance()) {
+        // GoogleApiAvailability.getInstance()
+        with(googleApiAvailability) {
             val code = isGooglePlayServicesAvailable(this@AppActivity)
             if (code == ConnectionResult.SUCCESS) {
                 return@with
@@ -164,7 +171,8 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
                 .show()
         }
 
-        FirebaseMessaging.getInstance().token.addOnSuccessListener {
+        //FirebaseMessaging.getInstance()
+        firebaseMessaging.token.addOnSuccessListener {
             println(it)
         }
     }

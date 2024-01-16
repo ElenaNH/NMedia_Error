@@ -2,11 +2,19 @@ package ru.netology.nmedia.viewmodel
 
 import android.net.Uri
 import androidx.lifecycle.*
+import androidx.paging.PagingData
+import androidx.paging.map
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.launchIn  // +++
+import kotlinx.coroutines.flow.onEach  // +++
 import kotlinx.coroutines.launch
 import ru.netology.nmedia.auth.AppAuth
 //import ru.netology.nmedia.db.AppDb
@@ -26,44 +34,42 @@ import javax.inject.Inject
 @HiltViewModel
 class PostViewModel @Inject constructor(
     private val repository: PostRepository,
-//    private val
-    appAuth: AppAuth,
+    private val appAuth: AppAuth,
 ) : ViewModel() {
-    val appAuth2 = appAuth // TODO зачем было убирать private val? теперь компилится только через Париж
 
-    val data: LiveData<FeedModel> =
+    val data: Flow<PagingData<Post>> =
         appAuth.data.flatMapLatest { token ->
             repository.data
                 .map { posts ->
                     posts.map { it.copy(ownedByMe = it.authorId == token?.id) }
                 }
-                .map { FeedModel(posts = it, empty = it.isEmpty()) }
         }
-
-            .asLiveData(Dispatchers.Default)
+            .flowOn(Dispatchers.Default)
 
     // Раз уж мы все равно используем AppAuth для преобразования данных, то и статус не помешает тоже
     val isAuthorized: Boolean
-        get() = appAuth2.data.value != null    // Берем StateFlow и проверяем
+        get() = appAuth.data.value != null    // Берем StateFlow и проверяем
 
 
     fun emptyPostForCurrentUser() = Post.getEmptyPost().copy(
-        authorId = appAuth2.currentUser().id,
-        author = appAuth2.currentUser().name,
-        authorAvatar = appAuth2.currentUser().avatar,
+        authorId = appAuth.currentUser().id,
+        author = appAuth.currentUser().name,
+        authorAvatar = appAuth.currentUser().avatar,
     )
 
     val edited = MutableLiveData(emptyPostForCurrentUser())
-    val draft = MutableLiveData(emptyPostForCurrentUser())  // И будем сохранять это только "in memory"
+    val draft =
+        MutableLiveData(emptyPostForCurrentUser())  // И будем сохранять это только "in memory"
 
-    val newerCount: LiveData<Int> = data.switchMap {
-        repository.getNewerCount(it.posts
-            .filter { it.unconfirmed == 0 }
-            .firstOrNull()?.id ?: 0L
-        )
-            .asLiveData(Dispatchers.Default)
-    }
+    val newerCount = 0L
 
+    /*   val newerCount: LiveData<Int> = data.switchMap {
+            repository.getNewerCount(it.posts
+                .filter { it.unconfirmed == 0 }
+                .firstOrNull()?.id ?: 0L
+            )
+                .asLiveData(Dispatchers.Default)
+        } */
     private val _dataState = MutableLiveData<FeedModelState>() //MutableLiveData(FeedModelState())
     val dataState: LiveData<FeedModelState>
         get() = _dataState
@@ -103,6 +109,23 @@ class PostViewModel @Inject constructor(
 
     init {
         loadPosts()
+
+        // +++
+        appAuth.data.onEach {
+            draft.value = draft.value?.copy(
+                authorId = appAuth.currentUser().id,
+                author = appAuth.currentUser().name,
+                authorAvatar = appAuth.currentUser().avatar,
+            )
+
+            edited.value = edited.value?.copy(
+                authorId = appAuth.currentUser().id,
+                author = appAuth.currentUser().name,
+                authorAvatar = appAuth.currentUser().avatar,
+            )
+        }
+            .launchIn(viewModelScope)
+        // ---
     }
 
     fun loadPosts() = refreshOrLoadPosts(refreshingState = false)

@@ -14,8 +14,12 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView.AdapterDataObserver
 import com.google.android.material.snackbar.Snackbar
 import androidx.core.view.isVisible
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import ru.netology.nmedia.R
 import ru.netology.nmedia.activity.NewPostFragment.Companion.textArg
 import ru.netology.nmedia.uiview.PostInteractionListenerImpl // Было до клиент-серверной модели
@@ -29,7 +33,8 @@ import ru.netology.nmedia.util.ConsolePrinter
 
 @AndroidEntryPoint
 class FeedFragment : Fragment() {
-    private val viewModel: PostViewModel by viewModels(ownerProducer = ::requireParentFragment)
+    //    private val viewModel: PostViewModel by viewModels(ownerProducer = ::requireParentFragment)
+    private val viewModel: PostViewModel by activityViewModels()
 
     // interactionListener должен быть доступен также из фрагмента PostFragment
     private val interactionListener by lazy { PostInteractionListenerImpl(viewModel, this) }
@@ -72,7 +77,7 @@ class FeedFragment : Fragment() {
     private fun subscribe() {
         // Подписки:
 
-        // Подписка на FeedModel - список сообщений и состояние этого списка
+        // Подписка на FeedModelState - состояние списка сообщений
         viewModel.dataState.observe(viewLifecycleOwner) { state ->
             binding.progress.isVisible = state.loading
             if (state.error) {
@@ -82,11 +87,17 @@ class FeedFragment : Fragment() {
             }
             binding.refreshLayout.isRefreshing = state.refreshing
         }
-        viewModel.data.observe(viewLifecycleOwner) { data ->
+        lifecycleScope.launchWhenCreated {
+            viewModel.data.collectLatest {
+                adapter.submitData(it)
+            }
+        }
+        /*viewModel.data.observe(viewLifecycleOwner) { data ->
             adapter.submitList(data.posts)
             binding.emptyText.isVisible = data.empty
-        }
-        viewModel.newerCount.observe(viewLifecycleOwner) {
+        }*/
+
+        /*viewModel.newerCount.observe(viewLifecycleOwner) {
             // Если ответ сервера нулевой, то видимость плашки не меняем
             // Если ненулевой, то по нашей логике первая пачка постов будет сразу видна
             // А вторая и последующие пачки обновлений будут скрыты
@@ -94,7 +105,7 @@ class FeedFragment : Fragment() {
             if (it > 0)
                 binding.someUnread.isVisible = true
             // else - ничего не делаем, кнопка пропадет после обновления recyclerview и прокрутки
-        }
+        }*/
 
         // Подписка на адаптер
         adapter.registerAdapterDataObserver(object : AdapterDataObserver() {
@@ -109,10 +120,20 @@ class FeedFragment : Fragment() {
         // Подписка на однократную ошибку
         viewModel.postActionFailed.observe(viewLifecycleOwner) { // Сообщаем однократно
             whenPostActionFailed(binding.root, viewModel, it)
+            lifecycleScope.launchWhenCreated {
+                if (it == PostActionType.ACTION_POST_LIKE_CHANGE) {
+                    viewModel.data.collectLatest {
+                        adapter.submitData(it)
+                    }
+                }
+            }
+        }
+        /*viewModel.postActionFailed.observe(viewLifecycleOwner) { // Сообщаем однократно
+            whenPostActionFailed(binding.root, viewModel, it)
             if (it == PostActionType.ACTION_POST_LIKE_CHANGE) {
                 adapter.submitList(viewModel.data.value?.posts)
             }
-        }
+        }*/
 
     }
 
@@ -128,7 +149,9 @@ class FeedFragment : Fragment() {
                     Bundle().apply {
                         ConsolePrinter.printText("Draft content for textArg = ${viewModel.getDraftContent()}")
                         //Через вьюмодель
-                        viewModel.startEditing(viewModel.draft.value ?: viewModel.emptyPostForCurrentUser())
+                        viewModel.startEditing(
+                            viewModel.draft.value ?: viewModel.emptyPostForCurrentUser()
+                        )
                         //Через аргумент
                         textArg =
                             viewModel.getDraftContent()  // В запускаемый фрагмент передаем содержимое черновика
