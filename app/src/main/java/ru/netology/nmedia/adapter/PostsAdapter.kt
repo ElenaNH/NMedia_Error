@@ -88,7 +88,7 @@ class PostViewHolder(
                 onInteractionListener.onViewSingle(post)
             }
 
-            ibtnMenuMoreActions.isVisible = post.ownedByMe
+              ibtnMenuMoreActions.isVisible = post.ownedByMe
             // Пока выбор меню обработаем в любом случае, а не только для ownedByMe
             // Может, позже вставим условие if (post.ownedByMe)
             ibtnMenuMoreActions.setOnClickListener {

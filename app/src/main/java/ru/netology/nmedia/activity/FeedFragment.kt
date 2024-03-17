@@ -17,6 +17,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.paging.LoadState
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
@@ -30,11 +31,13 @@ import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.enumeration.PostActionType
 import ru.netology.nmedia.uiview.goToLogin
 import ru.netology.nmedia.util.ConsolePrinter
+import ru.netology.nmedia.viewmodel.AuthViewModel
 
 @AndroidEntryPoint
 class FeedFragment : Fragment() {
     //    private val viewModel: PostViewModel by viewModels(ownerProducer = ::requireParentFragment)
     private val viewModel: PostViewModel by activityViewModels()
+    private val authViewModel: AuthViewModel by activityViewModels()
 
     // interactionListener должен быть доступен также из фрагмента PostFragment
     private val interactionListener by lazy { PostInteractionListenerImpl(viewModel, this) }
@@ -77,6 +80,16 @@ class FeedFragment : Fragment() {
     private fun subscribe() {
         // Подписки:
 
+        // на логон/логоф
+        this.activity?.let { thisActivity ->
+            authViewModel.data.observe(thisActivity) {
+                ConsolePrinter.printText("authViewModel.data.observe - adapter.refresh()")
+                adapter.refresh()
+                val stop1 = 1
+            }
+        }
+
+
         // Подписка на FeedModelState - состояние списка сообщений
         viewModel.dataState.observe(viewLifecycleOwner) { state ->
             binding.progress.isVisible = state.loading
@@ -92,20 +105,14 @@ class FeedFragment : Fragment() {
                 adapter.submitData(it)
             }
         }
-        /*viewModel.data.observe(viewLifecycleOwner) { data ->
-            adapter.submitList(data.posts)
-            binding.emptyText.isVisible = data.empty
-        }*/
+        lifecycleScope.launchWhenCreated {
+            adapter.loadStateFlow.collectLatest {
+                binding.refreshLayout.isRefreshing = it.refresh is LoadState.Loading
+                        || it.append is LoadState.Loading
+                        || it.prepend is LoadState.Loading
 
-        /*viewModel.newerCount.observe(viewLifecycleOwner) {
-            // Если ответ сервера нулевой, то видимость плашки не меняем
-            // Если ненулевой, то по нашей логике первая пачка постов будет сразу видна
-            // А вторая и последующие пачки обновлений будут скрыты
-            // Вот тогда и покажем плашку
-            if (it > 0)
-                binding.someUnread.isVisible = true
-            // else - ничего не делаем, кнопка пропадет после обновления recyclerview и прокрутки
-        }*/
+            }
+        }
 
         // Подписка на адаптер
         adapter.registerAdapterDataObserver(object : AdapterDataObserver() {
@@ -116,6 +123,7 @@ class FeedFragment : Fragment() {
                 }
             }
         })
+
 
         // Подписка на однократную ошибку
         viewModel.postActionFailed.observe(viewLifecycleOwner) { // Сообщаем однократно
@@ -128,12 +136,6 @@ class FeedFragment : Fragment() {
                 }
             }
         }
-        /*viewModel.postActionFailed.observe(viewLifecycleOwner) { // Сообщаем однократно
-            whenPostActionFailed(binding.root, viewModel, it)
-            if (it == PostActionType.ACTION_POST_LIKE_CHANGE) {
-                adapter.submitList(viewModel.data.value?.posts)
-            }
-        }*/
 
     }
 
@@ -165,7 +167,8 @@ class FeedFragment : Fragment() {
         }
 
         binding.refreshLayout.setOnRefreshListener {
-            viewModel.refresh()
+            //viewModel.refresh()
+            adapter.refresh()
         }
 
         binding.someUnread.setOnClickListener {

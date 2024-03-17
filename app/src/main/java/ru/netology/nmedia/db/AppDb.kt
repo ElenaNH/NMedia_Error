@@ -4,7 +4,9 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters  // пока не работает (понадобится, когда включим аннотацию)
 import ru.netology.nmedia.dao.PostDao
+import ru.netology.nmedia.dao.PostRemoteKeyDao
 import ru.netology.nmedia.entity.PostEntity
+import ru.netology.nmedia.entity.PostRemoteKeyEntity
 
 // Объявляем AppDb - абстрактный класс
 // Его имплементацию сгенерит библиотека ROOM сама
@@ -12,10 +14,15 @@ import ru.netology.nmedia.entity.PostEntity
 //@Database(entities = [PostEntity::class], version = 1)
 
 // Новый вариант аннотаций (при переходе к DependencyContainer)
-@Database(entities = [PostEntity::class], version = 1, exportSchema = false)
+@Database(
+    entities = [PostEntity::class, PostRemoteKeyEntity::class],
+    version = 1,
+    exportSchema = false
+)
 //@TypeConverters(Converters::class)  // Это пока не работает: не создали класс ...nmedia.dao.Converters
 abstract class AppDb : RoomDatabase() {
     abstract fun postDao(): PostDao
+    abstract fun postRemoteKeyDao(): PostRemoteKeyDao
 
 }
 

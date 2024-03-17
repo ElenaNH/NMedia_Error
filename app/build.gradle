@@ -147,6 +147,7 @@ dependencies {
 
     // Пагинация
     implementation "androidx.paging:paging-runtime-ktx:$paging_version"
+    implementation "androidx.room:room-paging:$room_version"    // это добавляем, когда начинаем сохранять страницы локально
 
     // Автотесты
     testImplementation "androidx.arch.core:core-testing:$arch_version"

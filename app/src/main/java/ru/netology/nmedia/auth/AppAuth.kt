@@ -19,6 +19,7 @@ import ru.netology.nmedia.api.ApiService
 import ru.netology.nmedia.dto.PushToken
 import ru.netology.nmedia.dto.Token
 import ru.netology.nmedia.dto.User
+import ru.netology.nmedia.util.ConsolePrinter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -67,7 +68,12 @@ class AppAuth @Inject constructor(
         _currentLogin.value = null
         _data.value = null
         prefs.edit { clear() } // ? нужен ли после clear еще и commit() - в одном примере есть, в другом нет
-        sendPushToken()
+        try {
+            sendPushToken() // Тест - только для логофа
+        } catch (e: Exception) {
+            ConsolePrinter.printText("sendPushToken Error occured")
+        }
+        ConsolePrinter.printText("sendPushToken fun (for Auth Clearing) Finished")
     }
 
     @InstallIn(SingletonComponent::class)
@@ -77,20 +83,26 @@ class AppAuth @Inject constructor(
     }
 
     fun sendPushToken(token: String? = null) {
+//        CoroutineScope(Dispatchers.Default).launch {
         CoroutineScope(Dispatchers.Default).launch {
             try {
-                val pushToken = PushToken(token ?: FirebaseMessaging.getInstance().token.await())
-                Log.d("pushToken", pushToken.toString())
+                val pushToken =
+                    PushToken(token ?: FirebaseMessaging.getInstance().token.await())
+                Log.d("pushToken_1", pushToken.toString())
 
                 val entryPoint =
                     EntryPointAccessors.fromApplication(context, AppAuthEntryPoint::class.java)
                 entryPoint.getApiService().sendPushToken(pushToken)
                 // TODO  ПОЧЕМУ в лекции ...apiService().save(pushToken)
+                Log.d("pushToken_2", "sendPushToken through entryPoint")
 
             } catch (e: Exception) {
+                Log.d("pushToken_3", "sendPushToken FAILED")
                 e.printStackTrace()
             }
         }
+//            ConsolePrinter.printText("External pushToken coroutine is finishing")
+//        }
     }
 
 

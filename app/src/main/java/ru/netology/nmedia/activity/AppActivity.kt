@@ -130,8 +130,10 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
                                         // Do something
                                         // Логоф
                                         appAuth.clearAuth()
-                                        // Уходим из режима редактирования в режим чтения
+                                        // Уходим из режима редактирования или чтения поста в режим чтения ленты
                                         if (currentFragment is NewPostFragment)
+                                            rootFragment.navController.navigateUp()
+                                        else if (currentFragment is PostFragment)
                                             rootFragment.navController.navigateUp()
                                     }
                                     .setNegativeButton(getString(R.string.action_cancel)) { dialog, which ->
