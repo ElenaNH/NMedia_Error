@@ -21,6 +21,7 @@
     <string name="add_post">Новое сообщение</string>
     <string name="new_posts">Смотреть новые</string>
     <string name="retry_loading">Попробовать снова</string>
+    <string name="retry">Повторить</string>
     <string name="empty_posts">Список постов пуст.\nЕсли вы создадите пост, он появится здесь</string>
     <string name="error_loading">Что-то пошло не так. Попробуйте снова чуть позже</string>
     <string name="error_attaching">Прикрепляемый файл не найден!</string>

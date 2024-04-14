@@ -9,7 +9,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide   //import com.squareup.picasso.Picasso
 import ru.netology.nmedia.BuildConfig
 import ru.netology.nmedia.R
+import ru.netology.nmedia.databinding.CardAdBinding
 import ru.netology.nmedia.databinding.CardPostBinding
+import ru.netology.nmedia.dto.Ad
+import ru.netology.nmedia.dto.FeedItem
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.dto.statisticsToString
 import ru.netology.nmedia.enumeration.AttachmentType
@@ -26,26 +29,61 @@ interface OnInteractionListener {
 
 
 class PostsAdapter(private val onInteractionListener: OnInteractionListener) :
-    PagingDataAdapter<Post, PostViewHolder>(PostDiffCallback()) {
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PostViewHolder {
-        val binding = CardPostBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return PostViewHolder(
-            binding,
-            onInteractionListener
-        )
+    PagingDataAdapter<FeedItem, RecyclerView.ViewHolder>(PostDiffCallback()) {
+    override fun getItemViewType(position: Int): Int {
+        // Получение типа элемента из данных:
+        // Можно описать свои константы типа Int
+        // либо использовать сгенерированные R.layout.id (рекомендуется, т.к. они уникальные)
+        return when (getItem(position)) {
+            is Ad -> R.layout.card_ad
+            is Post -> R.layout.card_post
+            null -> error("unknown item type")
+        }
     }
 
-    override fun onBindViewHolder(holder: PostViewHolder, position: Int) {
-        val post = getItem(position) ?: return
-        holder.bind(post)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder =
+        when (viewType) {
+            R.layout.card_post -> {
+                val binding =
+                    CardPostBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+                PostViewHolder(binding, onInteractionListener)
+            }
+
+            R.layout.card_ad -> {
+                val binding =
+                    CardAdBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+                AdViewHolder(binding)
+            }
+
+            else -> error("unknown view type: $viewType")
+        }
+
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        when (val item = getItem(position)) {
+            is Ad -> (holder as? AdViewHolder)?.bind(item)
+            is Post -> (holder as? PostViewHolder)?.bind(item)
+            null -> error("unknown item type")
+        }
     }
 
 }
 
+class AdViewHolder(
+    private val binding: CardAdBinding,
+) : RecyclerView.ViewHolder(binding.root) {
+    fun bind(ad: Ad) {
+
+        Glide.with(binding.image).load("${BuildConfig.BASE_URL}/media/${ad.image}")
+            //.placeholder(R.drawable.ic_loading_100dp)
+            .error(R.drawable.ic_error_100dp).timeout(10_000).into(binding.image)
+        binding.image
+
+        // binding.image.load("${BuildConfig.BASE_URL}/media/${ad.image}")   // не компилится
+    }
+}
+
 class PostViewHolder(
-    private val binding: CardPostBinding,
-    private val onInteractionListener: OnInteractionListener
+    private val binding: CardPostBinding, private val onInteractionListener: OnInteractionListener
 ) : RecyclerView.ViewHolder(binding.root) {
     fun bind(post: Post) {
         binding.apply {
@@ -57,9 +95,8 @@ class PostViewHolder(
                 // Сначала сбросим старое изображение
 //                videoLinkPic.setImageDrawable(null)  // перенесли в loadImage
                 loadImage(post, videoLinkPic)
-            } else
-                if ((post.videoLink ?: "").trim() == "") videoLinkPic.setImageDrawable(null)
-                else videoLinkPic.setImageResource(R.mipmap.ic_banner_foreground)
+            } else if ((post.videoLink ?: "").trim() == "") videoLinkPic.setImageDrawable(null)
+            else videoLinkPic.setImageResource(R.mipmap.ic_banner_foreground)
             // Для MaterialButton (но не для Button)
             ibtnLikes.isChecked = post.likedByMe
             ibtnLikes.text =
@@ -88,7 +125,7 @@ class PostViewHolder(
                 onInteractionListener.onViewSingle(post)
             }
 
-              ibtnMenuMoreActions.isVisible = post.ownedByMe
+            ibtnMenuMoreActions.isVisible = post.ownedByMe
             // Пока выбор меню обработаем в любом случае, а не только для ownedByMe
             // Может, позже вставим условие if (post.ownedByMe)
             ibtnMenuMoreActions.setOnClickListener {
@@ -115,13 +152,9 @@ class PostViewHolder(
             // И после всех привязок начинаем, наконец, грузить картинку
             //val url = "${BASE_URL}/avatars/${post.avatarFileName()}"
             val url = "${BuildConfig.BASE_URL}/avatars/${post.authorAvatar}"
-            Glide.with(binding.imgAvatar)
-                .load(url)
-                .circleCrop()
-                .placeholder(R.drawable.ic_loading_100dp)
-                .error(R.drawable.ic_error_100dp)
-                .timeout(10_000)
-                .into(binding.imgAvatar)
+            Glide.with(binding.imgAvatar).load(url).circleCrop()
+                .placeholder(R.drawable.ic_loading_100dp).error(R.drawable.ic_error_100dp)
+                .timeout(10_000).into(binding.imgAvatar)
 
 //            Picasso.get()
 //                .load(url)

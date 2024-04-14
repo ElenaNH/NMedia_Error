@@ -21,6 +21,10 @@ fun Long.statisticsToString(): String {
     }
 }
 
+sealed interface FeedItem{
+    val id: Long
+}
+
 data class Attachment(
     val url: String,
     val description: String? = null, // этот параметр не удаляем, хоть и не используем его пока полноценно
@@ -32,7 +36,7 @@ data class Attachment(
 * НО!!!
 * Правильно было использовать PostEntity, который конвертировать далее через toDto*/
 data class Post(
-    val id: Long,
+    override val id: Long,
     val authorId: Long,
     val author: String,
     val authorAvatar: String,
@@ -49,7 +53,7 @@ data class Post(
     val hidden: Int,
     val unsavedAttach: Int = 0,
     val ownedByMe: Boolean = false, // Не будет сохраняться ни локально, ни на сервер
-) {
+) : FeedItem {
 
  companion object {
         fun getEmptyPost(): Post {
@@ -72,7 +76,9 @@ data class Post(
         }
     }
 
-
-
-
 }
+
+data class Ad(
+    override val id: Long,
+    val image: String,
+) : FeedItem

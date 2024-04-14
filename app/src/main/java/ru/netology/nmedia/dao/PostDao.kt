@@ -14,10 +14,10 @@ import ru.netology.nmedia.util.ConsolePrinter
 @Dao
 interface PostDao {
     @Query("SELECT * FROM PostEntity WHERE deleted = 0 AND hidden = 0 ORDER BY unconfirmed DESC, id DESC")
-    fun getAll(): Flow<List<PostEntity>>
+    fun getPagingSource(): PagingSource<Int, PostEntity>
 
     @Query("SELECT * FROM PostEntity WHERE deleted = 0 AND hidden = 0 ORDER BY unconfirmed DESC, id DESC")
-    fun getPagingSource(): PagingSource<Int, PostEntity>
+    fun getAll(): Flow<List<PostEntity>>
 
     @Query("SELECT COUNT(*)  == 0 FROM PostEntity WHERE deleted = 0 AND hidden = 0")
     suspend fun isEmpty(): Boolean
@@ -128,10 +128,10 @@ interface PostDao {
 //    suspend fun restoreById(unconfirmedStatus: Int, id: Long)
 
     @Query("DELETE FROM PostEntity WHERE id = :id AND unconfirmed = :unconfirmedStatus")
-    suspend fun clearById(unconfirmedStatus: Int, id: Long)
+    suspend fun clearById(unconfirmedStatus: Int, id: Long)  //removeById(id: Long)
 
     @Query("DELETE FROM PostEntity")
-    suspend fun clear()
+    suspend fun clear() //removeAll()
 
     @Query("UPDATE PostEntity SET hidden = 0 WHERE hidden <> 0")
     suspend fun setAllVisible()

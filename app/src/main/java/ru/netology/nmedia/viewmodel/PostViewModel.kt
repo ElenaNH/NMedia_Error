@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import ru.netology.nmedia.auth.AppAuth
 //import ru.netology.nmedia.db.AppDb
 import ru.netology.nmedia.dto.Attachment
+import ru.netology.nmedia.dto.FeedItem
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.enumeration.AttachmentType
 import ru.netology.nmedia.enumeration.PostActionType
@@ -37,14 +38,20 @@ class PostViewModel @Inject constructor(
     private val appAuth: AppAuth,
 ) : ViewModel() {
 
-    val data: Flow<PagingData<Post>> =
-        appAuth.data.flatMapLatest { token ->
+    val data: Flow<PagingData<FeedItem>> = appAuth.data
+        .flatMapLatest { token ->
             repository.data
-                .map { posts ->
-                    posts.map { it.copy(ownedByMe = it.authorId == token?.id) }
+                .map { postsOrAds ->
+                    postsOrAds.map { item ->
+                        if (item is Post) {
+                            item.copy(ownedByMe = item.authorId == token?.id)
+                        } else {
+                            item
+                        }
+                    }
                 }
         }
-            .flowOn(Dispatchers.Default)
+        .flowOn(Dispatchers.Default)
 
     // Раз уж мы все равно используем AppAuth для преобразования данных, то и статус не помешает тоже
     val isAuthorized: Boolean

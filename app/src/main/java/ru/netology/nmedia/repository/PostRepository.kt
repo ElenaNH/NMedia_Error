@@ -2,11 +2,12 @@ package ru.netology.nmedia.repository
 
 import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
+import ru.netology.nmedia.dto.FeedItem
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.model.PhotoModel
 
 interface PostRepository {
-    val data: Flow<PagingData<Post>>  // Flow<List<Post>>
+    val data: Flow<PagingData<FeedItem>>  // Flow<PagingData<Post>>
     suspend fun getAll()
     suspend fun setAllVisible()
 //    suspend fun countHidden(): Int
