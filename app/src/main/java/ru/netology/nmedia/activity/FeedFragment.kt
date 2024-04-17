@@ -59,12 +59,12 @@ class FeedFragment : Fragment() {
         )   // в лекции layoutInflater, а в примерах переданный параметр inflater
 
         // Содержимое onCreate, оставшееся от activity, должно быть здесь
+        // val adapter = PostsAdapter(interactionListener) вынесли выше и отдали by lazy
         binding.list.adapter =
             adapter.withLoadStateHeaderAndFooter(
                 header = PostLoadingStateAdapter { adapter.retry() },
                 footer = PostLoadingStateAdapter { adapter.retry() }
             )
-        // val adapter = PostsAdapter(interactionListener) вынесли выше и отдали by lazy
 
         subscribe()     // все подписки, которые могут нам потребоваться в данной активити
         setListeners()  // все лиснеры всех элементов данной активити
@@ -98,7 +98,7 @@ class FeedFragment : Fragment() {
 
         // Подписка на FeedModelState - состояние списка сообщений
         viewModel.dataState.observe(viewLifecycleOwner) { state ->
-            binding.progress.isVisible = state.loading
+            binding.progress.isVisible = state.refreshing  // state.loading
             if (state.error) {
                 Snackbar.make(binding.root, R.string.error_loading, Snackbar.LENGTH_LONG)
                     .setAction(R.string.retry_loading) { viewModel.loadPosts() }
